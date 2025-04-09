@@ -8,6 +8,7 @@ function App() {
   const [gridSize, setGridSize] = useState(6);
   const [cells, setCells] = useState<Cell[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [resetPath, setResetPath] = useState(false);
   
   const startDate = new Date(2024, 2, 2); // 2 mars 2024
   const puzzleNumber = Math.floor((selectedDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
@@ -40,6 +41,9 @@ function App() {
 
   const handleSelectDay = (date: Date) => {
     setSelectedDate(date);
+    setResetPath(true);
+    // Réinitialiser resetPath après un court délai
+    setTimeout(() => setResetPath(false), 100);
   };
 
   const handleUndo = () => {
@@ -60,6 +64,7 @@ function App() {
         onSelectDay={handleSelectDay}
         onUndo={handleUndo}
         onSizeChange={handleSizeChange}
+        resetPath={resetPath}
       />
     </div>
   );
