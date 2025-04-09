@@ -7,8 +7,12 @@ import './App.css'
 function App() {
   const [gridSize, setGridSize] = useState(6);
   const [cells, setCells] = useState<Cell[]>([]);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   
-  const generateNewGame = () => {
+  const startDate = new Date(2024, 2, 2); // 2 mars 2024
+  const puzzleNumber = Math.floor((selectedDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+  const generatePuzzle = (date: Date) => {
     const difficulty = adjustDifficultyByDay();
     const grid: Grid = generateGrid(gridSize, gridSize, 8, difficulty);
     
@@ -25,17 +29,17 @@ function App() {
     setCells(flatCells);
   };
 
-  // Générer une nouvelle grille au démarrage
+  // Générer une nouvelle grille quand la date change
   useEffect(() => {
-    generateNewGame();
-  }, [gridSize]);
+    generatePuzzle(selectedDate);
+  }, [selectedDate, gridSize]);
 
   const handleCellClick = (cell: Cell) => {
     console.log('Cell clicked:', cell);
   };
 
-  const handleNewGame = () => {
-    generateNewGame();
+  const handleSelectDay = (date: Date) => {
+    setSelectedDate(date);
   };
 
   const handleUndo = () => {
@@ -51,8 +55,9 @@ function App() {
       <GameGrid
         size={gridSize}
         cells={cells}
+        puzzleNumber={puzzleNumber}
         onCellClick={handleCellClick}
-        onNewGame={handleNewGame}
+        onSelectDay={handleSelectDay}
         onUndo={handleUndo}
         onSizeChange={handleSizeChange}
       />

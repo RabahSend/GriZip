@@ -18,6 +18,16 @@
   color: #000;
 }
 
+.timer {
+  font-family: monospace;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #2563eb;
+  background: #f3f4f6;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
 .game-grid {
   display: grid;
   gap: 4px;

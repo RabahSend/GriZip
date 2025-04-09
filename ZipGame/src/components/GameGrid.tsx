@@ -1,30 +1,66 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './GameGrid.css';
 import { Cell } from '../types/gameTypes';
+import { PuzzleCalendar } from './PuzzleCalendar';
 
 interface GameGridProps {
   size: number;
   cells: Cell[];
+  puzzleNumber: number;
   onCellClick?: (cell: Cell) => void;
-  onNewGame?: () => void;
+  onSelectDay: (date: Date) => void;
   onUndo?: () => void;
   onSizeChange?: (size: number) => void;
 }
 
+const formatTime = (seconds: number): string => {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+};
+
 export const GameGrid: React.FC<GameGridProps> = ({ 
   size, 
-  cells, 
+  cells,
+  puzzleNumber,
   onCellClick,
-  onNewGame,
+  onSelectDay,
   onUndo,
   onSizeChange
 }) => {
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [isTimerActive, setIsTimerActive] = useState<boolean>(false);
+
+  useEffect(() => {
+    let intervalId: number;
+
+    if (isTimerActive) {
+      intervalId = setInterval(() => {
+        setElapsedTime(time => time + 1);
+      }, 1000);
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [isTimerActive]);
+
+  // Démarrer le timer au premier clic
+  const handleCellClick = (cell: Cell) => {
+    if (!isTimerActive) {
+      setIsTimerActive(true);
+    }
+    onCellClick?.(cell);
+  };
+
   return (
     <div className="game-container">
       {/* Header */}
       <div className="game-header">
-        <h1>Puzzle #20</h1>
-        <div>Time: 00:00</div>
+        <h1>Puzzle #{puzzleNumber}</h1>
+        <div className="timer">{formatTime(elapsedTime)}</div>
       </div>
 
       {/* Grid */}
@@ -43,7 +79,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
             <div
               key={index}
               className="grid-cell"
-              onClick={() => cell && onCellClick?.(cell)}
+              onClick={() => cell && handleCellClick(cell)}
             >
               {cell?.value && (
                 <div className="cell-number">
@@ -54,6 +90,9 @@ export const GameGrid: React.FC<GameGridProps> = ({
           );
         })}
       </div>
+
+      {/* Calendar */}
+      <PuzzleCalendar onSelectDay={onSelectDay} />
 
       {/* Controls */}
       <div className="controls">
@@ -71,14 +110,10 @@ export const GameGrid: React.FC<GameGridProps> = ({
           </select>
         </div>
         <button 
-          className="button button-primary"
-          onClick={onNewGame}
-        >
-          New Game
-        </button>
-        <button 
           className="button button-secondary"
-          onClick={onUndo}
+          onClick={() => {
+            onUndo?.();
+          }}
         >
           Undo
         </button>

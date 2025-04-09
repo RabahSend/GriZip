@@ -1,0 +1,149 @@
+.calendar-wrapper {
+  margin: 20px 0;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Override react-calendar default styles */
+.react-calendar {
+  width: 100% !important;
+  border: none !important;
+  background: none !important;
+  font-family: inherit !important;
+}
+
+.react-calendar__tile {
+  position: relative !important;
+  height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.9rem !important;
+  border-radius: 4px !important;
+  transition: all 0.2s !important;
+}
+
+.react-calendar__tile:enabled:hover {
+  background-color: #e5e7eb !important;
+}
+
+.react-calendar__tile--now {
+  background-color: #2563eb !important;
+  color: white !important;
+}
+
+.react-calendar__tile--now:enabled:hover {
+  background-color: #1d4ed8 !important;
+}
+
+.react-calendar__tile.past {
+  background-color: #f3f4f6 !important;
+  color: #374151 !important;
+}
+
+.react-calendar__tile.future {
+  background-color: #f9fafb !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+}
+
+.react-calendar__navigation {
+  margin-bottom: 16px !important;
+}
+
+.react-calendar__navigation button {
+  background: none !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 4px !important;
+  color: #374151 !important;
+}
+
+.react-calendar__navigation button:enabled:hover {
+  background-color: #f3f4f6 !important;
+}
+
+.react-calendar__navigation button[disabled] {
+  background-color: #f9fafb !important;
+  color: #9ca3af !important;
+}
+
+.tile-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.puzzle-number {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 0.6rem;
+  color: #6b7280;
+}
+
+.difficulty-indicator {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.difficulty-indicator.easy {
+  background-color: #22c55e;
+}
+
+.difficulty-indicator.medium {
+  background-color: #eab308;
+}
+
+.difficulty-indicator.hard {
+  background-color: #ef4444;
+}
+
+/* Difficulty Legend */
+.difficulty-legend {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.difficulty-legend h3 {
+  font-size: 0.9rem;
+  color: #4b5563;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.legend-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.legend-item .difficulty-indicator {
+  position: static;
+  transform: none;
+  width: 8px;
+  height: 8px;
+}
+
+.legend-text strong {
+  color: #374151;
+  font-weight: 600;
+} 
