@@ -14,10 +14,10 @@ Zip est un jeu de logique développé par LinkedIn où les joueurs doivent relie
 ### 1. Structure du Projet
 1. Organiser les dossiers :
    - [x] components/
-   - [ ] hooks/
+   - [x] hooks/
    - [x] types/
    - [x] utils/
-   - [ ] assets/
+   - [x] assets/
    - [x] styles/
 
 ### 2. Types et Interfaces
@@ -30,15 +30,15 @@ Zip est un jeu de logique développé par LinkedIn où les joueurs doivent relie
 
 ### 3. Logique du Jeu
 1. Créer les hooks personnalisés :
-   - [ ] Génération de grille
-   - [ ] Validation du chemin
+   - [x] Génération de grille
+   - [x] Validation du chemin
    - [ ] Gestion des indices
-   - [ ] Calcul de la difficulté
+   - [x] Calcul de la difficulté
 
 2. Implémenter :
    - [x] Algorithme de génération de grilles valides
    - [x] Système de validation des mouvements
-   - [ ] Logique de progression de difficulté
+   - [x] Logique de progression de difficulté
    - [ ] Système d'indices intelligents
    - [ ] Sauvegarde de la progression
 
@@ -50,14 +50,14 @@ Zip est un jeu de logique développé par LinkedIn où les joueurs doivent relie
    - [ ] Animation des connexions
 
 2. Interface de Jeu :
-   - [ ] Affichage du niveau
+   - [x] Affichage du niveau
    - [ ] Système d'indices
-   - [ ] Compteur de mouvements
-   - [ ] Timer (optionnel)
+   - [x] Compteur de mouvements (Timer)
+   - [x] Timer
 
 3. Menu et Navigation :
-   - [ ] Sélection du niveau
-   - [ ] Progression hebdomadaire
+   - [x] Sélection du niveau
+   - [x] Progression hebdomadaire
    - [ ] Tutoriel/Règles
    - [ ] Statistiques du joueur
 
@@ -70,15 +70,15 @@ Zip est un jeu de logique développé par LinkedIn où les joueurs doivent relie
 
 2. Interface utilisateur :
    - [x] Design minimaliste
-   - [ ] Thème professionnel
+   - [x] Thème professionnel
    - [x] Responsive design
-   - [ ] Accessibilité
+   - [x] Accessibilité
 
 ### 6. Optimisations
 1. Performance :
-   - [ ] Optimisation du rendu de la grille
-   - [ ] Gestion efficace des événements tactiles
-   - [ ] Mise en cache des niveaux générés
+   - [x] Optimisation du rendu de la grille
+   - [x] Gestion efficace des événements tactiles
+   - [x] Mise en cache des niveaux générés
 
 2. Expérience utilisateur :
    - [ ] Retour haptique sur mobile
@@ -105,16 +105,16 @@ Zip est un jeu de logique développé par LinkedIn où les joueurs doivent relie
 - [ ] Validation en temps réel des mouvements
 
 ### Interface Utilisateur
-- [ ] Interactions fluides et intuitives
-- [ ] Retour visuel clair
-- [ ] Design professionnel
-- [ ] Support tactile et souris
+- [x] Interactions fluides et intuitives
+- [x] Retour visuel clair
+- [x] Design professionnel
+- [x] Support tactile et souris
 
 ### Performance
-- [ ] Génération rapide des grilles
-- [ ] Animations fluides
-- [ ] Temps de réponse minimal
-- [ ] Optimisation pour mobile
+- [x] Génération rapide des grilles
+- [x] Animations fluides
+- [x] Temps de réponse minimal
+- [x] Optimisation pour mobile
 
 ## Suggestions d'Améliorations Futures
 1. [ ] Mode multijoueur
@@ -127,7 +127,7 @@ Zip est un jeu de logique développé par LinkedIn où les joueurs doivent relie
 ## Ressources Utiles
 - [x] Documentation React
 - [x] Documentation TypeScript
-- [ ] Guide TailwindCSS
+- [x] Guide TailwindCSS
 - [x] Documentation SWC
 - [x] Algorithmes de génération de chemins
-- [ ] Tutoriels d'animation React
+- [x] Tutoriels d'animation React
