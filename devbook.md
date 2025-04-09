@@ -8,7 +8,6 @@ Zip est un jeu de logique développé par LinkedIn où les joueurs doivent relie
 - [x] TypeScript
 - [x] SWC (compilateur)
 - [x] Vite
-- [x] TailwindCSS
 
 ## Étapes d'Implémentation
 
@@ -19,7 +18,7 @@ Zip est un jeu de logique développé par LinkedIn où les joueurs doivent relie
    - [x] types/
    - [x] utils/
    - [ ] assets/
-   - [ ] styles/
+   - [x] styles/
 
 ### 2. Types et Interfaces
 1. Définir les interfaces pour :
@@ -45,7 +44,7 @@ Zip est un jeu de logique développé par LinkedIn où les joueurs doivent relie
 
 ### 4. Composants UI
 1. Grille de Jeu :
-   - [ ] Affichage dynamique de la grille
+   - [x] Affichage dynamique de la grille
    - [ ] Gestion du touch/click and drag
    - [ ] Visualisation du chemin
    - [ ] Animation des connexions
@@ -64,15 +63,15 @@ Zip est un jeu de logique développé par LinkedIn où les joueurs doivent relie
 
 ### 5. Styles et Design
 1. Design de la grille :
-   - [ ] Cellules réactives
+   - [x] Cellules réactives
    - [ ] Visualisation claire du chemin
    - [ ] Feedback visuel des mouvements
    - [ ] Animations fluides
 
 2. Interface utilisateur :
-   - [ ] Design minimaliste
+   - [x] Design minimaliste
    - [ ] Thème professionnel
-   - [ ] Responsive design
+   - [x] Responsive design
    - [ ] Accessibilité
 
 ### 6. Optimisations
@@ -93,7 +92,7 @@ Zip est un jeu de logique développé par LinkedIn où les joueurs doivent relie
    - [ ] Système d'indices
 
 2. Tests d'intégration :
-   - [x] Interactions utilisateur
+   - [ ] Interactions utilisateur
    - [ ] Progression des niveaux
    - [ ] Sauvegarde/Chargement
 
@@ -126,9 +125,9 @@ Zip est un jeu de logique développé par LinkedIn où les joueurs doivent relie
 6. [ ] Achievements
 
 ## Ressources Utiles
-- [ ] Documentation React
-- [ ] Documentation TypeScript
+- [x] Documentation React
+- [x] Documentation TypeScript
 - [ ] Guide TailwindCSS
-- [ ] Documentation SWC
-- [ ] Algorithmes de génération de chemins
+- [x] Documentation SWC
+- [x] Algorithmes de génération de chemins
 - [ ] Tutoriels d'animation React
