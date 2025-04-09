@@ -277,8 +277,12 @@ export function generateGrid(rows: number, cols: number, numberCount: number, di
       selectedIndex = sortedIndices[0];
       break;
     case 'MEDIUM':
-      // Sélectionner une grille de complexité moyenne (deuxième quartile)
-      selectedIndex = sortedIndices[Math.floor(sortedIndices.length / 3)];
+      // Sélectionner une grille de complexité moyenne (milieu)
+      selectedIndex = sortedIndices[Math.floor(sortedIndices.length / 2)];
+      // S'assurer que c'est différent du niveau EASY
+      if (selectedIndex === sortedIndices[0] && sortedIndices.length > 1) {
+        selectedIndex = sortedIndices[1];
+      }
       break;
     case 'HARD':
       // Sélectionner une des grilles les plus complexes (dernier quartile)
