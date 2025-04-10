@@ -463,6 +463,9 @@ export const GameGrid: React.FC<GameGridProps> = ({
               }}
             >
               <option value="6">6x6</option>
+              <option value="10">10x10</option>
+              <option value="12">12x12</option>
+              <option value="15">15x15</option>
             </select>
           </div>
           <button 
