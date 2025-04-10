@@ -125,22 +125,22 @@ export const GameGrid: React.FC<GameGridProps> = ({
     
     if (cellIndex === -1) return directions;
     
-    // Check previous cell
+    // Pour la cellule précédente
     if (cellIndex > 0) {
       const prev = path[cellIndex - 1];
-      if (prev.row < row) directions.push('path-up');
-      if (prev.row > row) directions.push('path-down');
-      if (prev.col < col) directions.push('path-left');
-      if (prev.col > col) directions.push('path-right');
+      if (prev.row < row) directions.push('from-top');
+      if (prev.row > row) directions.push('from-bottom');
+      if (prev.col < col) directions.push('from-left');
+      if (prev.col > col) directions.push('from-right');
     }
     
-    // Check next cell
+    // Pour la cellule suivante
     if (cellIndex < path.length - 1) {
       const next = path[cellIndex + 1];
-      if (next.row < row) directions.push('path-up');
-      if (next.row > row) directions.push('path-down');
-      if (next.col < col) directions.push('path-left');
-      if (next.col > col) directions.push('path-right');
+      if (next.row < row) directions.push('to-top');
+      if (next.row > row) directions.push('to-bottom');
+      if (next.col < col) directions.push('to-left');
+      if (next.col > col) directions.push('to-right');
     }
     
     return directions;
@@ -196,6 +196,29 @@ export const GameGrid: React.FC<GameGridProps> = ({
     }
   };
 
+  // Nouvelle fonction pour trouver les cases intermédiaires
+  const getIntermediateCells = (start: { row: number; col: number }, end: { row: number; col: number }): { row: number; col: number }[] => {
+    const cells: { row: number; col: number }[] = [];
+    const rowDiff = end.row - start.row;
+    const colDiff = end.col - start.col;
+
+    // Si on est sur la même ligne
+    if (rowDiff === 0) {
+      const step = colDiff > 0 ? 1 : -1;
+      for (let col = start.col + step; col !== end.col + step; col += step) {
+        cells.push({ row: start.row, col });
+      }
+    }
+    // Si on est sur la même colonne
+    else if (colDiff === 0) {
+      const step = rowDiff > 0 ? 1 : -1;
+      for (let row = start.row + step; row !== end.row + step; row += step) {
+        cells.push({ row, col: start.col });
+      }
+    }
+    return cells;
+  };
+
   const handleMouseEnter = (row: number, col: number, e: React.MouseEvent | { buttons: number }) => {
     if (!isDragging || !('buttons' in e) || !e.buttons) return;
 
@@ -206,10 +229,48 @@ export const GameGrid: React.FC<GameGridProps> = ({
     }
 
     const lastCell = path[path.length - 1];
+    
+    // Si on est déjà sur cette case, ne rien faire
+    if (lastCell.row === row && lastCell.col === col) return;
+
+    // Si la case est déjà dans le chemin, ne rien faire
+    if (isInPath(row, col)) return;
+    
+    // Vérifier si le mouvement est adjacent
     const isAdjacent = Math.abs(row - lastCell.row) + Math.abs(col - lastCell.col) === 1;
     
-    if (isAdjacent && !isInPath(row, col)) {
+    // Si c'est un mouvement adjacent, l'ajouter directement
+    if (isAdjacent) {
       const newPath = [...path, { row, col }];
+      
+      // Si c'est un nombre, vérifier si c'est le dernier
+      if (grid[row][col].value) {
+        const maxNumber = Math.max(...grid.flatMap(row => row.filter(cell => cell.value !== null).map(cell => cell.value || 0)));
+        if (grid[row][col].value === maxNumber) {
+          console.log('Checking final path...');
+          const isValid = checkPath(newPath);
+          console.log('Path valid?', isValid);
+          if (isValid) {
+            setPath(newPath);
+            setIsTimerActive(false);
+            setShowSuccess(true);
+            return;
+          }
+        }
+      }
+      
+      setPath(newPath);
+      return;
+    }
+    
+    // Si ce n'est pas adjacent, vérifier le mouvement en ligne droite
+    const intermediateCells = getIntermediateCells(lastCell, { row, col });
+    const isValidPath = intermediateCells.every(cell => !isInPath(cell.row, cell.col));
+    const isSameRow = row === lastCell.row;
+    const isSameCol = col === lastCell.col;
+    
+    if ((isSameRow || isSameCol) && isValidPath && intermediateCells.length > 0) {
+      const newPath = [...path, ...intermediateCells, { row, col }];
 
       // Si c'est un nombre, vérifier si c'est le dernier
       if (grid[row][col].value) {
@@ -307,7 +368,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
-                className={`grid-cell ${isInPath(rowIndex, colIndex) ? 'in-path' : ''} ${pathDirections.join(' ')}`}
+                className={`grid-cell ${isInPath(rowIndex, colIndex) ? 'in-path' : ''} ${cell.value ? `number-${cell.value}` : ''} ${pathDirections.join(' ')}`}
                 onMouseDown={() => handleMouseDown(rowIndex, colIndex)}
                 onMouseEnter={(e) => handleMouseEnter(rowIndex, colIndex, e)}
                 onTouchStart={(e) => {
@@ -328,7 +389,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
                 }}
               >
                 {cell.value && (
-                  <div className="cell-number">
+                  <div className={`cell-number ${isInPath(rowIndex, colIndex) ? 'visited' : ''}`}>
                     {cell.value}
                   </div>
                 )}

@@ -30,9 +30,9 @@
 
 .game-grid {
   display: grid;
-  gap: 4px;
+  gap: 1px;
   padding: 10px;
-  background: #fff;
+  background: #ccc;
   border: 2px solid #ccc;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -52,43 +52,161 @@
 }
 
 .grid-cell.in-path {
-  background-color: #bbf7d0;
   position: relative;
-  z-index: 1;
 }
 
 .grid-cell.in-path::before {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 100%;
-  height: 60%;
   background-color: #4ade80;
-  transform: translate(-50%, -50%);
-  z-index: -1;
+  z-index: 1;
+  box-shadow: 0 0 0 1px #4ade80;
 }
 
-.grid-cell.in-path.path-right::before {
-  width: 150%;
-  left: 75%;
+/* Lignes horizontales */
+.grid-cell.in-path.from-left.to-right::before,
+.grid-cell.in-path.from-right.to-left::before {
+  top: 30%;
+  left: -1px;
+  width: calc(100% + 2px);
+  height: 40%;
 }
 
-.grid-cell.in-path.path-left::before {
-  width: 150%;
-  left: 25%;
+/* Lignes verticales - Version améliorée */
+.grid-cell.in-path.from-top.to-bottom::before,
+.grid-cell.in-path.from-bottom.to-top::before {
+  top: -1px;
+  left: 30%;
+  width: 40%;
+  height: calc(100% + 2px);
+  z-index: 1; /* Assurer que la connexion apparaît */
 }
 
-.grid-cell.in-path.path-down::before {
-  height: 150%;
-  top: 75%;
-  width: 60%;
+/* Connexions pour le numéro 1 dans toutes les directions */
+.grid-cell.in-path.number-1.to-bottom::before,
+.grid-cell.in-path.number-1.to-top::before,
+.grid-cell.in-path.number-1.to-left::before,
+.grid-cell.in-path.number-1.to-right::before {
+  background-color: #4ade80;
+  z-index: 1;
+  box-shadow: 0 0 0 1px #4ade80;
 }
 
-.grid-cell.in-path.path-up::before {
-  height: 150%;
-  top: 25%;
-  width: 60%;
+/* Connexions pour le numéro 8 dans toutes les directions */
+.grid-cell.in-path.number-8.from-top::before,
+.grid-cell.in-path.number-8.from-bottom::before,
+.grid-cell.in-path.number-8.from-left::before,
+.grid-cell.in-path.number-8.from-right::before {
+  background-color: #4ade80;
+  z-index: 1;
+  box-shadow: 0 0 0 1px #4ade80;
+}
+
+/* Connexions horizontales avec ajustements pour éviter les dépassements */
+.grid-cell.in-path.number-1.to-left::before {
+  top: 30%;
+  left: -1px;
+  width: 50%; /* S'arrête au milieu */
+  height: 40%;
+}
+
+.grid-cell.in-path.number-1.to-right::before {
+  top: 30%;
+  left: 50%; /* Commence au milieu */
+  width: 50%;
+  height: 40%;
+}
+
+.grid-cell.in-path.number-8.from-left::before {
+  top: 30%;
+  left: -1px;
+  width: 50%; /* S'arrête au milieu */
+  height: 40%;
+}
+
+.grid-cell.in-path.number-8.from-right::before {
+  top: 30%;
+  left: 50%; /* Commence au milieu */
+  width: 50%;
+  height: 40%;
+}
+
+/* Connexions verticales avec ajustements pour éviter les dépassements */
+.grid-cell.in-path.number-1.to-top::before {
+  top: -1px;
+  left: 30%;
+  width: 40%;
+  height: 50%; /* S'arrête au milieu */
+}
+
+.grid-cell.in-path.number-1.to-bottom::before {
+  top: 50%; /* Commence au milieu */
+  left: 30%;
+  width: 40%;
+  height: 50%;
+}
+
+.grid-cell.in-path.number-8.from-top::before {
+  top: -1px;
+  left: 30%;
+  width: 40%;
+  height: 50%; /* S'arrête au milieu */
+}
+
+.grid-cell.in-path.number-8.from-bottom::before {
+  top: 50%; /* Commence au milieu */
+  left: 30%;
+  width: 40%;
+  height: 50%;
+}
+
+/* Coin supérieur gauche - arrondi */
+.grid-cell.in-path.from-top.to-left::before,
+.grid-cell.in-path.from-left.to-top::before {
+  top: -1px;
+  left: -1px;
+  width: calc(100% + 1px);
+  height: calc(100% + 1px);
+  border-bottom-right-radius: 100%;
+  clip-path: polygon(30% 0%, 30% 30%, 0% 30%, 0% 70%, 70% 70%, 70% 0%);
+}
+
+/* Coin supérieur droit - arrondi */
+.grid-cell.in-path.from-top.to-right::before,
+.grid-cell.in-path.from-right.to-top::before {
+  top: -1px;
+  left: -1px;
+  width: calc(100% + 2px);
+  height: calc(100% + 1px);
+  clip-path: polygon(29% 45%, 29% 0%, 70% 0%, 70% 29%, calc(100% + 1px) 29%, calc(100% + 1px) 71%, 29% 71%);
+}
+
+/* Coin inférieur gauche - arrondi */
+.grid-cell.in-path.from-bottom.to-left::before,
+.grid-cell.in-path.from-left.to-bottom::before {
+  top: -1px;
+  left: -1px;
+  width: calc(100% + 1px);
+  height: calc(100% + 2px);
+  border-top-right-radius: 100%;
+  clip-path: polygon(-1% 30%, 70% 30%, 70% calc(100% + 1px), 30% calc(100% + 1px), 30% 70%, -1% 70%);
+}
+
+/* Coin inférieur droit - arrondi */
+.grid-cell.in-path.from-bottom.to-right::before,
+.grid-cell.in-path.from-right.to-bottom::before {
+  top: -1px;
+  left: -1px;
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+  border-top-left-radius: 100%;
+  clip-path: polygon(29% 29%, calc(100% + 1px) 29%, calc(100% + 1px) 71%, 71% 71%, 71% calc(100% + 1px), 29% calc(100% + 1px));
+}
+
+/* Cellule avec numéro */
+.grid-cell.in-path .cell-number {
+  z-index: 3;
+  position: relative;
 }
 
 .cell-number {
@@ -112,6 +230,14 @@
   -ms-user-select: none;
   pointer-events: none;
   z-index: 2;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Nouvelle classe pour les chiffres traversés - version agrandie */
+.cell-number.visited {
+  border: 5px solid #4ade80;
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.7);
+  transform: translate(-50%, -50%) scale(1.1);
 }
 
 .controls {
