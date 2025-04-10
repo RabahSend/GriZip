@@ -398,31 +398,27 @@ export const GameGrid: React.FC<GameGridProps> = ({
           gridTemplateColumns: `repeat(${size}, 1fr)`,
         }}
       >
-        {isLoading ? (
-          <div className="loading-container">
-            <div className="spinner" />
-          </div>
-        ) : (
-          grid.flatMap((row, rowIndex) => 
-            row.map((cell, colIndex) => {
-              const pathDirections = getPathDirections(rowIndex, colIndex);
+        {grid.flatMap((row, rowIndex) => 
+          row.map((cell, colIndex) => {
+            const pathDirections = getPathDirections(rowIndex, colIndex);
 
-              // Calcul du numéro maximum (dernier numéro)
-              const maxNumber = Math.max(...grid.flatMap(row => 
-                row.filter(cell => cell.value !== null)
-                  .map(cell => cell.value || 0)
-              ));
-              
-              // Classe pour le numéro
-              const numberClass = cell?.value ? `number-${cell.value}` : '';
-              
-              // Ajouter la classe 'last-number' si cette cellule contient le dernier numéro
-              const isLastNumber = cell.value === maxNumber;
-              const lastNumberClass = isLastNumber ? 'last-number' : '';
+            // Calcul du numéro maximum (dernier numéro)
+            const maxNumber = Math.max(...grid.flatMap(row => 
+              row.filter(cell => cell.value !== null)
+                .map(cell => cell.value || 0)
+            ));
+            
+            // Classe pour le numéro
+            const numberClass = cell?.value ? `number-${cell.value}` : '';
+            
+            // Ajouter la classe 'last-number' si cette cellule contient le dernier numéro
+            const isLastNumber = cell.value === maxNumber;
+            const lastNumberClass = isLastNumber ? 'last-number' : '';
+
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
-                className={`grid-cell ${isInPath(rowIndex, colIndex) ? 'in-path' : ''} ${cell.value ? `number-${cell.value}` : ''} ${pathDirections.join(' ')}`}
+                className={`grid-cell ${isInPath(rowIndex, colIndex) ? 'in-path' : ''} ${pathDirections.join(' ')} ${numberClass} ${lastNumberClass}`}
                 onMouseDown={() => handleMouseDown(rowIndex, colIndex)}
                 onMouseEnter={(e) => handleMouseEnter(rowIndex, colIndex, e)}
                 onTouchStart={(e) => {
