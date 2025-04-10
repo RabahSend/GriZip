@@ -911,8 +911,8 @@ export function adjustDifficultyByDay(): Difficulty {
   
   // Difficulté progressive au fil de la semaine
   if (day === 0) return 'HARD'; // Dimanche
-  if (day <= 2) return 'HARD'; // Lundi, Mardi
-  if (day <= 5) return 'HARD'; // Mercredi, Jeudi, Vendredi
+  if (day <= 2) return 'EASY'; // Lundi, Mardi
+  if (day <= 5) return 'MEDIUM'; // Mercredi, Jeudi, Vendredi
   return 'HARD'; // Samedi
 }
 
