@@ -1,6 +1,54 @@
 import { Grid, Cell, Difficulty, Coordinate, ValidationResult, Path } from '../types/gameTypes';
 
 /**
+ * Crée une grille avec un motif en spirale
+ */
+function createSpiralGrid(rows: number, cols: number, numberCount: number): Grid {
+  const grid = createEmptyGrid(rows, cols);
+  let value = 1;
+  let top = 0, bottom = rows - 1, left = 0, right = cols - 1;
+  
+  while (value <= numberCount && top <= bottom && left <= right) {
+    // Haut
+    for (let i = left; i <= right && value <= numberCount; i += 2) {
+      grid[top][i].value = value++;
+    }
+    top++;
+    
+    // Droite
+    for (let i = top; i <= bottom && value <= numberCount; i += 2) {
+      grid[i][right].value = value++;
+    }
+    right--;
+    
+    // Bas
+    for (let i = right; i >= left && value <= numberCount; i -= 2) {
+      grid[bottom][i].value = value++;
+    }
+    bottom--;
+    
+    // Gauche
+    for (let i = bottom; i >= top && value <= numberCount; i -= 2) {
+      grid[i][left].value = value++;
+    }
+    left++;
+  }
+  
+  // Si on n'a pas placé tous les nombres, les placer en diagonale
+  if (value <= numberCount) {
+    for (let i = 0; i < rows && value <= numberCount; i++) {
+      for (let j = 0; j < cols && value <= numberCount; j++) {
+        if (grid[i][j].value === null) {
+          grid[i][j].value = value++;
+        }
+      }
+    }
+  }
+  
+  return grid;
+}
+
+/**
  * Crée une grille vide avec les dimensions spécifiées
  */
 export function createEmptyGrid(rows: number, cols: number): Grid {
@@ -610,88 +658,84 @@ function generateCompletePath(grid: Grid): Path | false {
 /**
  * Génère une grille complète avec un chemin valide
  */
-export function generateGrid(rows: number, cols: number, numberCount: number, difficulty: Difficulty): Grid {
-  // Augmenter le nombre de candidats et ajouter une limite maximale de tentatives
-  const numCandidates = 50; // Augmenté de 30 à 50
-  const maxTotalAttempts = 3; // Nombre maximum de cycles de génération
-  let totalAttempts = 0;
-  let validCandidates: Grid[] = [];
-  
-  while (validCandidates.length === 0 && totalAttempts < maxTotalAttempts) {
-    totalAttempts++;
-    const candidates: Grid[] = [];
-    
-    for (let i = 0; i < numCandidates; i++) {
-      // Générer une grille de base
-      let grid = createEmptyGrid(rows, cols);
-      grid = placeNumbersInGrid(grid, numberCount);
-      candidates.push(grid);
+export function generateGrid(rows: number, cols: number, numberCount: number, difficulty: Difficulty, seed?: Date): Grid {
+  // Réessayer jusqu'à trouver une solution valide
+  while (true) {
+    try {
+      // Créer un seed unique qui change chaque seconde
+      let seedValue: number;
+      if (seed) {
+        seedValue = seed.getTime();
+      } else {
+        seedValue = Date.now();
+      }
+
+      // Améliorer la fonction random avec plus d'entropie
+      const random = () => {
+        seedValue = (seedValue * 48271 + 16807) % 2147483647;
+        return (seedValue & 0x7fffffff) / 0x7fffffff;
+      };
+
+      // Remplacer Math.random par notre fonction random
+      const originalMathRandom = Math.random;
+      Math.random = random;
+
+      // Augmenter le nombre de tentatives pour trouver une solution valide
+      const maxAttempts = 200;
+      let attempt = 0;
+      let validGrid: Grid | null = null;
+
+      while (attempt < maxAttempts && !validGrid) {
+        attempt++;
+        const grid = createEmptyGrid(rows, cols);
+        const filledGrid = placeNumbersInGrid(grid, numberCount);
+        
+        // Vérifier que la grille a une solution qui passe par toutes les cases
+        const path = findValidPath(filledGrid, true);
+        
+        // On accepte uniquement les grilles dont la solution passe par toutes les cases
+        if (Array.isArray(path) && path.length === rows * cols) {
+          validGrid = filledGrid;
+          break;
+        }
+      }
+
+      // Si on n'a pas trouvé de grille valide après toutes les tentatives, on réessaye
+      // avec des contraintes plus simples jusqu'à trouver une solution
+      if (!validGrid) {
+        attempt = 0;
+        while (attempt < maxAttempts && !validGrid) {
+          attempt++;
+          const grid = createEmptyGrid(rows, cols);
+          const filledGrid = placeNumbersInGrid(grid, numberCount);
+          
+          const path = findValidPath(filledGrid, true);
+          if (Array.isArray(path) && path.length === rows * cols) {
+            validGrid = filledGrid;
+            break;
+          }
+        }
+      }
+
+      // Restaurer la fonction Math.random originale
+      Math.random = originalMathRandom;
+
+      // Si on a trouvé une solution valide, la retourner
+      if (validGrid) {
+        // IMPORTANT: Vérifier et corriger le nombre de valeurs dans la grille
+        ensureCorrectNumberCount(validGrid, numberCount);
+        return validGrid;
+      }
+
+      // Si on n'a pas trouvé de solution, on va réessayer avec un nouveau seed
+      seed = new Date(seed ? seed.getTime() + 1000 : Date.now() + 1000);
+      
+    } catch (error) {
+      // En cas d'erreur, on réessaye avec un nouveau seed
+      seed = new Date(seed ? seed.getTime() + 1000 : Date.now() + 1000);
+      continue;
     }
-    
-    // Filtrer pour ne garder que les grilles complètement résolvables
-    validCandidates = candidates.filter(g => {
-      // Vérifier si un chemin complet existe
-      return findValidPath(g, true) !== false;
-    });
   }
-  
-  // Si malgré nos tentatives, on n'a pas de candidat valide,
-  // créer une grille spéciale garantie d'avoir une solution
-  if (validCandidates.length === 0) {
-    const grid = createEmptyGrid(rows, cols);
-    const fallbackGrid = createFallbackGrid(grid, numberCount);
-    validCandidates = [fallbackGrid];
-  }
-  
-  // Calculer la complexité de chaque grille candidate
-  const complexities = validCandidates.map(g => validateGrid(g, numberCount).isValid ? calculateGridComplexity(g) : 0);
-  
-  // Créer des objets avec index et complexité pour le tri
-  const complexityData = complexities
-    .map((c, i) => ({ complexity: c, index: i }))
-    .filter(item => item.complexity > 0); // Éliminer les grilles invalides
-  
-  // Trier par complexité
-  complexityData.sort((a, b) => a.complexity - b.complexity);
-  
-  // Sélectionner les grilles selon la difficulté
-  let selectedGrid: Grid;
-  
-  if (complexityData.length === 0) {
-    // Utiliser notre solution garantie
-    const grid = createEmptyGrid(rows, cols);
-    selectedGrid = createFallbackGrid(grid, numberCount);
-  } else {
-    // Sélectionner la grille selon la difficulté
-    let index: number;
-    switch (difficulty) {
-      case 'EASY':
-        index = complexityData[0].index; // Première (la plus simple)
-        break;
-      case 'MEDIUM':
-        index = complexityData[Math.floor(complexityData.length / 2)].index; // Milieu
-        break;
-      case 'HARD':
-        index = complexityData[complexityData.length - 1].index; // Dernière (la plus difficile)
-        break;
-      default:
-        index = complexityData[0].index;
-    }
-    
-    selectedGrid = JSON.parse(JSON.stringify(validCandidates[index]));
-  }
-  
-  // Vérification finale pour s'assurer que la grille a une solution complète
-  if (findValidPath(selectedGrid, true) === false) {
-    // Si la grille n'a pas de solution, utiliser notre solution garantie
-    const grid = createEmptyGrid(rows, cols);
-    selectedGrid = createFallbackGrid(grid, numberCount);
-  }
-  
-  // IMPORTANT: Vérifier et corriger le nombre de valeurs dans la grille
-  ensureCorrectNumberCount(selectedGrid, numberCount);
-  
-  return selectedGrid;
 }
 
 /**
@@ -730,7 +774,6 @@ function ensureCorrectNumberCount(grid: Grid, numberCount: number): void {
     
     // Mélanger les cellules vides pour des placements aléatoires
     shuffleArray(emptyCells);
-    
     // Ajouter les valeurs manquantes
     for (let i = currentCount + 1; i <= numberCount; i++) {
       if (emptyCells.length > 0) {
@@ -889,10 +932,11 @@ export function validateGrid(grid: Grid, numberCount: number): ValidationResult 
     errors.push(`La grille ne contient pas tous les nombres de 1 à ${numberCount}`);
   }
   
-  // IMPORTANT: Ne pas exiger un chemin complet, seulement un chemin entre nombres consécutifs
-  const hasValidPath = !!findValidPath(grid);
+  // Exiger un chemin complet qui passe par toutes les cases
+  const path = findValidPath(grid, true);
+  const hasValidPath = path !== false;
   if (!hasValidPath) {
-    errors.push('Il n\'existe pas de chemin valide entre les nombres');
+    errors.push('Il n\'existe pas de chemin valide passant par toutes les cases');
   }
   
   return {

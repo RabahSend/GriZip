@@ -115,55 +115,61 @@
 }
 
 .controls {
+  margin: 20px 0;
+}
+
+.controls-row {
   display: flex;
-  gap: 20px;
   justify-content: center;
+  gap: 12px;
   align-items: center;
-  margin-top: 20px;
 }
 
 .grid-size {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  white-space: nowrap;
 }
 
 .grid-size label {
-  font-size: 0.9rem;
+  font-weight: 500;
   color: #333;
 }
 
 .grid-size select {
-  padding: 5px 10px;
+  padding: 8px 12px;
   border: 1px solid #ccc;
   border-radius: 4px;
+  background: white;
 }
 
 .button {
   padding: 8px 16px;
   border: none;
   border-radius: 4px;
+  font-weight: 500;
   cursor: pointer;
-  font-size: 0.9rem;
   transition: background-color 0.2s;
+  white-space: nowrap;
 }
 
 .button-primary {
-  background-color: #2563eb;
+  background: #2563eb;
   color: white;
 }
 
 .button-primary:hover {
-  background-color: #1d4ed8;
+  background: #1d4ed8;
 }
 
 .button-secondary {
-  background-color: #f3f4f6;
+  background: #e5e7eb;
   color: #374151;
 }
 
 .button-secondary:hover {
-  background-color: #e5e7eb;
+  background: #d1d5db;
 }
 
 .solution-controls {

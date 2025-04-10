@@ -23,3 +23,5 @@ export type Cell = {
   };
 
   export type Path = Coordinate[];
+
+  export type PuzzleStatus = 'COMPLETED' | 'SOLVED_WITH_HELP' | 'NOT_COMPLETED';

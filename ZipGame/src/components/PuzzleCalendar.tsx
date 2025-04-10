@@ -2,10 +2,12 @@ import React from 'react';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import './PuzzleCalendar.css';
-import type { Difficulty } from '../types/gameTypes';
+import type { Difficulty, PuzzleStatus } from '../types/gameTypes';
 
 interface PuzzleCalendarProps {
   onSelectDay: (date: Date) => void;
+  selectedDate: Date;
+  puzzleStatuses?: Record<string, PuzzleStatus>;
 }
 
 const DIFFICULTY_LABELS: Record<Difficulty, string> = {
@@ -14,7 +16,11 @@ const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   'HARD': 'Samedi, Dimanche'
 };
 
-export const PuzzleCalendar: React.FC<PuzzleCalendarProps> = ({ onSelectDay }) => {
+export const PuzzleCalendar: React.FC<PuzzleCalendarProps> = ({ 
+  onSelectDay, 
+  selectedDate,
+  puzzleStatuses = {} 
+}) => {
   const startDate = new Date(2024, 2, 2); // 2 mars 2024
   const today = new Date();
 
@@ -51,11 +57,23 @@ export const PuzzleCalendar: React.FC<PuzzleCalendarProps> = ({ onSelectDay }) =
     const isToday = date.toDateString() === today.toDateString();
     const isPast = date < today;
     const isFuture = date > today;
+    const isSelected = date.toDateString() === selectedDate.toDateString();
 
-    if (isToday) return 'today';
-    if (isPast) return 'past';
-    if (isFuture) return 'future';
-    return '';
+    let classes = [];
+    if (isToday) classes.push('today');
+    if (isPast) classes.push('past');
+    if (isFuture) classes.push('future');
+    if (isSelected) classes.push('selected');
+
+    // Ajouter la classe en fonction du statut du puzzle
+    const status = puzzleStatuses[date.toISOString().split('T')[0]];
+    if (status === 'COMPLETED') {
+      classes.push('completed');
+    } else if (status === 'SOLVED_WITH_HELP') {
+      classes.push('solved-with-help');
+    }
+
+    return classes.join(' ');
   };
 
   const handleDateChange = (value: any) => {
@@ -68,7 +86,7 @@ export const PuzzleCalendar: React.FC<PuzzleCalendarProps> = ({ onSelectDay }) =
     <div className="calendar-wrapper">
       <Calendar
         onChange={handleDateChange}
-        value={today}
+        value={selectedDate}
         tileContent={tileContent}
         tileClassName={tileClassName}
         minDetail="month"

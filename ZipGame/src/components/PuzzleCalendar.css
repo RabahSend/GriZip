@@ -49,6 +49,41 @@
   cursor: not-allowed !important;
 }
 
+/* Style pour le jour sélectionné */
+.react-calendar__tile.selected {
+  background-color: #3b82f6 !important;
+  color: white !important;
+  box-shadow: 0 0 0 2px #60a5fa !important;
+}
+
+.react-calendar__tile.selected:hover {
+  background-color: #2563eb !important;
+}
+
+/* Styles pour les puzzles complétés */
+.react-calendar__tile.completed {
+  background-color: #86efac !important;
+  color: white !important;
+}
+
+.react-calendar__tile.completed:hover {
+  background-color: #4ade80 !important;
+}
+
+/* Styles pour les puzzles résolus avec aide */
+.react-calendar__tile.solved-with-help {
+  background-color: #fca5a5 !important;
+  color: white !important;
+}
+
+.react-calendar__tile.solved-with-help:hover {
+  background-color: #ef4444 !important;
+}
+
+.react-calendar__tile.selected .puzzle-number {
+  color: #e5e7eb !important;
+}
+
 .react-calendar__navigation {
   margin-bottom: 16px !important;
 }

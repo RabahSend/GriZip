@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import './GameGrid.css';
-import { Cell, Grid, Path } from '../types/gameTypes';
+import { Cell, Grid, Path, PuzzleStatus } from '../types/gameTypes';
 import { PuzzleCalendar } from './PuzzleCalendar';
-import { findValidPath } from '../utils/gridGenerator';
+import { findValidPath, generateGrid } from '../utils/gridGenerator';
 
 interface GameGridProps {
   size: number;
-  cells: Cell[];
-  puzzleNumber: number;
+  numberCount: number;
+  selectedDate: Date;
   onCellClick?: (cell: Cell) => void;
   onSelectDay: (date: Date) => void;
   onUndo?: () => void;
   onSizeChange?: (size: number) => void;
   resetPath?: boolean;
+  onPuzzleComplete: (date: Date, usedHelp: boolean) => void;
+  puzzleStatuses: Record<string, PuzzleStatus>;
 }
 
 const formatTime = (seconds: number): string => {
@@ -23,13 +25,15 @@ const formatTime = (seconds: number): string => {
 
 export const GameGrid: React.FC<GameGridProps> = ({ 
   size, 
-  cells,
-  puzzleNumber,
+  numberCount,
+  selectedDate,
   onCellClick,
   onSelectDay,
   onUndo,
   onSizeChange,
-  resetPath
+  resetPath,
+  onPuzzleComplete,
+  puzzleStatuses
 }) => {
   const [elapsedTime, setElapsedTime] = useState<number>(0);
   const [isTimerActive, setIsTimerActive] = useState<boolean>(false);
@@ -39,6 +43,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
   const [startCell, setStartCell] = useState<Cell | null>(null);
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [showingSolution, setShowingSolution] = useState<boolean>(false);
+  const [grid, setGrid] = useState<Grid>([]);
 
   useEffect(() => {
     let intervalId: number;
@@ -66,10 +71,21 @@ export const GameGrid: React.FC<GameGridProps> = ({
     }
   }, [resetPath]);
 
+  useEffect(() => {
+    const newGrid = generateGrid(size, size, numberCount, 'MEDIUM', selectedDate);
+    setGrid(newGrid);
+    setPath([]);
+    setCurrentNumber(1);
+    setIsTimerActive(false);
+    setElapsedTime(0);
+    setShowSuccess(false);
+    setShowingSolution(false);
+  }, [size, numberCount, selectedDate]);
+
   const checkPath = (pathToCheck: Path) => {
     // Récupérer tous les nombres dans l'ordre
-    const numbers = cells
-      .filter(cell => cell.value !== null)
+    const numbers = grid
+      .flatMap(row => row.filter(cell => cell.value !== null))
       .sort((a, b) => (a.value || 0) - (b.value || 0));
 
     console.log('Numbers to check:', numbers);
@@ -91,7 +107,15 @@ export const GameGrid: React.FC<GameGridProps> = ({
       lastIndex = pathIndex;
     }
 
+    // Vérifier que le chemin passe par toutes les cases de la grille
+    const totalCells = grid.length * grid[0].length;
+    if (pathToCheck.length < totalCells) {
+      console.log(`Invalid path: does not cover all cells (${pathToCheck.length} vs ${totalCells} required)`);
+      return false;
+    }
+
     console.log('Path is valid!');
+    onPuzzleComplete(selectedDate, false);
     return true;
   };
 
@@ -127,10 +151,10 @@ export const GameGrid: React.FC<GameGridProps> = ({
   };
 
   const handleMouseDown = (row: number, col: number) => {
-    const clickedCell = cells.find(c => c.row === row && c.col === col);
+    const clickedCell = grid[row][col];
     
     // Si on clique sur le premier numéro (1)
-    if (clickedCell?.value === 1 && path.length === 0) {
+    if (clickedCell.value === 1 && path.length === 0) {
       setPath([{ row, col }]);
       setIsDragging(true);
       if (!isTimerActive) {
@@ -156,8 +180,8 @@ export const GameGrid: React.FC<GameGridProps> = ({
         setIsDragging(true);
 
         // Si c'est un nombre, vérifier si c'est le dernier
-        if (clickedCell?.value) {
-          const maxNumber = Math.max(...cells.filter(cell => cell.value !== null).map(cell => cell.value || 0));
+        if (clickedCell.value) {
+          const maxNumber = Math.max(...grid.flatMap(row => row.filter(cell => cell.value !== null).map(cell => cell.value || 0)));
           if (clickedCell.value === maxNumber) {
             console.log('Checking final path...');
             const isValid = checkPath(newPath);
@@ -185,13 +209,12 @@ export const GameGrid: React.FC<GameGridProps> = ({
     const isAdjacent = Math.abs(row - lastCell.row) + Math.abs(col - lastCell.col) === 1;
     
     if (isAdjacent && !isInPath(row, col)) {
-      const clickedCell = cells.find(c => c.row === row && c.col === col);
       const newPath = [...path, { row, col }];
 
       // Si c'est un nombre, vérifier si c'est le dernier
-      if (clickedCell?.value) {
-        const maxNumber = Math.max(...cells.filter(cell => cell.value !== null).map(cell => cell.value || 0));
-        if (clickedCell.value === maxNumber) {
+      if (grid[row][col].value) {
+        const maxNumber = Math.max(...grid.flatMap(row => row.filter(cell => cell.value !== null).map(cell => cell.value || 0)));
+        if (grid[row][col].value === maxNumber) {
           console.log('Checking final path...');
           const isValid = checkPath(newPath);
           console.log('Path valid?', isValid);
@@ -224,7 +247,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
 
   const handleShowSolution = () => {
     // Créer une grille correctement initialisée
-    const grid: Grid = Array(size).fill(null).map((_, rowIndex) => 
+    const newGrid: Grid = Array(size).fill(null).map((_, rowIndex) => 
       Array(size).fill(null).map((_, colIndex) => ({
         row: rowIndex,
         col: colIndex,
@@ -235,17 +258,21 @@ export const GameGrid: React.FC<GameGridProps> = ({
     );
 
     // Remplir la grille avec les valeurs des cellules
-    cells.forEach(cell => {
-      grid[cell.row][cell.col].value = cell.value;
-    });
+    grid.forEach((row, rowIndex) => 
+      row.forEach((cell, colIndex) => {
+        newGrid[rowIndex][colIndex].value = cell.value;
+      })
+    );
 
     // Trouver le chemin valide
-    const solution = findValidPath(grid, true);
+    const solution = findValidPath(newGrid, true);
     
     if (solution && Array.isArray(solution)) {
       setPath(solution);
       setShowingSolution(true);
-      setCurrentNumber(cells.length); // Marquer comme complet
+      setCurrentNumber(grid.length); // Marquer comme complet
+      onPuzzleComplete(selectedDate, true); // Marquer comme résolu avec aide
+      setIsTimerActive(false); // Arrêter le timer
     } else {
       console.error("Impossible de trouver une solution valide");
       // Optionnel : afficher un message à l'utilisateur
@@ -262,7 +289,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
     <div className="game-container">
       {/* Header */}
       <div className="game-header">
-        <h1>Puzzle #{puzzleNumber}</h1>
+        <h1>Puzzle du {selectedDate.toLocaleDateString()}</h1>
         <div className="timer">{formatTime(elapsedTime)}</div>
       </div>
 
@@ -273,109 +300,110 @@ export const GameGrid: React.FC<GameGridProps> = ({
           gridTemplateColumns: `repeat(${size}, 1fr)`,
         }}
       >
-        {Array.from({ length: size * size }).map((_, index) => {
-          const row = Math.floor(index / size);
-          const col = index % size;
-          const cell = cells.find(c => c.row === row && c.col === col);
-          const pathDirections = cell ? getPathDirections(row, col) : [];
+        {grid.flatMap((row, rowIndex) => 
+          row.map((cell, colIndex) => {
+            const pathDirections = getPathDirections(rowIndex, colIndex);
 
-          return (
-            <div
-              key={index}
-              className={`grid-cell ${isInPath(row, col) ? 'in-path' : ''} ${pathDirections.join(' ')}`}
-              onMouseDown={() => handleMouseDown(row, col)}
-              onMouseEnter={(e) => handleMouseEnter(row, col, e)}
-              onTouchStart={(e) => {
-                e.preventDefault();
-                handleMouseDown(row, col);
-              }}
-              onTouchMove={(e) => {
-                e.preventDefault();
-                const touch = e.touches[0];
-                const element = document.elementFromPoint(touch.clientX, touch.clientY);
-                if (element?.classList.contains('grid-cell')) {
-                  const cellElement = element;
-                  const index = Array.from(cellElement.parentElement?.children || []).indexOf(cellElement);
-                  const row = Math.floor(index / size);
-                  const col = index % size;
-                  handleMouseEnter(row, col, new MouseEvent('mouseenter', { buttons: 1 }));
-                }
-              }}
-            >
-              {cell?.value && (
-                <div className="cell-number">
-                  {cell.value}
-                </div>
-              )}
-            </div>
-          );
-        })}
+            return (
+              <div
+                key={`${rowIndex}-${colIndex}`}
+                className={`grid-cell ${isInPath(rowIndex, colIndex) ? 'in-path' : ''} ${pathDirections.join(' ')}`}
+                onMouseDown={() => handleMouseDown(rowIndex, colIndex)}
+                onMouseEnter={(e) => handleMouseEnter(rowIndex, colIndex, e)}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  handleMouseDown(rowIndex, colIndex);
+                }}
+                onTouchMove={(e) => {
+                  e.preventDefault();
+                  const touch = e.touches[0];
+                  const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                  if (element?.classList.contains('grid-cell')) {
+                    const cellElement = element;
+                    const index = Array.from(cellElement.parentElement?.children || []).indexOf(cellElement);
+                    const row = Math.floor(index / size);
+                    const col = index % size;
+                    handleMouseEnter(row, col, new MouseEvent('mouseenter', { buttons: 1 }));
+                  }
+                }}
+              >
+                {cell.value && (
+                  <div className="cell-number">
+                    {cell.value}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
-
-      {/* Success Popup */}
-      {showSuccess && (
-        <div className="success-popup">
-          <div className="success-content">
-            <h2>Félicitations !</h2>
-            <p>Vous avez réussi en {formatTime(elapsedTime)} !</p>
-            <button 
-              className="button button-primary"
-              onClick={() => setShowSuccess(false)}
-            >
-              Fermer
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Calendar */}
-      <PuzzleCalendar onSelectDay={onSelectDay} />
 
       {/* Controls */}
       <div className="controls">
-        <div className="grid-size">
-          <label htmlFor="gridSize">Grid Size:</label>
-          <select
-            id="gridSize"
-            defaultValue={`${size}`}
-            onChange={(e) => {
-              const newSize = parseInt(e.target.value);
-              onSizeChange?.(newSize);
+        <div className="controls-row">
+          <div className="grid-size">
+            <label htmlFor="gridSize">Size:</label>
+            <select
+              id="gridSize"
+              defaultValue={`${size}`}
+              onChange={(e) => {
+                const newSize = parseInt(e.target.value);
+                onSizeChange?.(newSize);
+              }}
+            >
+              <option value="6">6x6</option>
+            </select>
+          </div>
+          <button 
+            className="button button-secondary"
+            onClick={() => {
               setPath([]);
               setCurrentNumber(1);
+              onUndo?.();
             }}
           >
-            <option value="6">6x6</option>
-          </select>
-        </div>
-        <button 
-          className="button button-secondary"
-          onClick={() => {
-            setPath([]);
-            setCurrentNumber(1);
-            onUndo?.();
-          }}
-        >
-          Undo
-        </button>
-        <div className="solution-controls">
+            Reset
+          </button>
           {!showingSolution ? (
             <button 
               className="button button-primary"
               onClick={handleShowSolution}
             >
-              Afficher la solution
+              Show Solution
             </button>
           ) : (
             <button 
               className="button button-secondary"
               onClick={handleResetSolution}
             >
-              Masquer la solution
+              Hide Solution
             </button>
           )}
         </div>
       </div>
+
+      {/* Calendar */}
+      <PuzzleCalendar 
+        onSelectDay={onSelectDay} 
+        selectedDate={selectedDate}
+        puzzleStatuses={puzzleStatuses}
+      />
+
+      {/* Success Popup */}
+      {showSuccess && (
+        <div className="success-popup">
+          <div className="success-content">
+            <h2>Congratulations!</h2>
+            <p>You completed the puzzle of {selectedDate.toLocaleDateString()} in {formatTime(elapsedTime)}!</p>
+            <button 
+              className="button button-primary"
+              onClick={() => setShowSuccess(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
