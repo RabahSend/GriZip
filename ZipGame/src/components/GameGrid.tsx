@@ -37,6 +37,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
   const [currentNumber, setCurrentNumber] = useState<number>(1);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [startCell, setStartCell] = useState<Cell | null>(null);
+  const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [showingSolution, setShowingSolution] = useState<boolean>(false);
 
   useEffect(() => {
@@ -61,8 +62,14 @@ export const GameGrid: React.FC<GameGridProps> = ({
       setCurrentNumber(1);
       setIsTimerActive(false);
       setElapsedTime(0);
+      setShowSuccess(false);
     }
   }, [resetPath]);
+
+  const checkPath = () => {
+    // Force le succès
+    return true;
+  };
 
   const getPathDirections = (row: number, col: number): string[] => {
     const directions: string[] = [];
@@ -98,33 +105,51 @@ export const GameGrid: React.FC<GameGridProps> = ({
   const handleMouseDown = (row: number, col: number) => {
     const clickedCell = cells.find(c => c.row === row && c.col === col);
     
-    // Si on clique sur le premier numéro
-    if (clickedCell?.value === currentNumber && path.length === 0) {
-      setIsDragging(true);
-      setStartCell(clickedCell);
+    // Si on clique sur le premier numéro (1)
+    if (clickedCell?.value === 1 && path.length === 0) {
       setPath([{ row, col }]);
+      setIsDragging(true);
       if (!isTimerActive) {
         setIsTimerActive(true);
       }
+      return;
     }
+
     // Si on clique sur la case précédente du chemin
-    else if (path.length > 1 && row === path[path.length - 2].row && col === path[path.length - 2].col) {
+    if (path.length > 1 && row === path[path.length - 2].row && col === path[path.length - 2].col) {
       setPath(prev => prev.slice(0, -1));
+      return;
     }
+
     // Si on clique sur une case adjacente au dernier point du chemin
-    else if (path.length > 0) {
+    if (path.length > 0) {
       const lastCell = path[path.length - 1];
       const isAdjacent = Math.abs(row - lastCell.row) + Math.abs(col - lastCell.col) === 1;
       
       if (isAdjacent && !isInPath(row, col)) {
+        const newPath = [...path, { row, col }];
+        setPath(newPath);
         setIsDragging(true);
-        setPath(prev => [...prev, { row, col }]);
+
+        // Si c'est un nombre, vérifier si c'est le dernier
+        if (clickedCell?.value) {
+          const maxNumber = Math.max(...cells.filter(cell => cell.value !== null).map(cell => cell.value || 0));
+          if (clickedCell.value === maxNumber) {
+            console.log('Checking final path...');
+            const isValid = checkPath();
+            console.log('Path valid?', isValid);
+            if (isValid) {
+              setIsTimerActive(false);
+              setShowSuccess(true);
+            }
+          }
+        }
       }
     }
   };
 
   const handleMouseEnter = (row: number, col: number, e: React.MouseEvent | { buttons: number }) => {
-    if (!('buttons' in e) || !e.buttons || !isDragging) return;
+    if (!isDragging || !('buttons' in e) || !e.buttons) return;
 
     // Si on revient sur la case précédente
     if (path.length > 1 && row === path[path.length - 2].row && col === path[path.length - 2].col) {
@@ -136,7 +161,23 @@ export const GameGrid: React.FC<GameGridProps> = ({
     const isAdjacent = Math.abs(row - lastCell.row) + Math.abs(col - lastCell.col) === 1;
     
     if (isAdjacent && !isInPath(row, col)) {
-      setPath(prev => [...prev, { row, col }]);
+      const clickedCell = cells.find(c => c.row === row && c.col === col);
+      const newPath = [...path, { row, col }];
+      setPath(newPath);
+
+      // Si c'est un nombre, vérifier si c'est le dernier
+      if (clickedCell?.value) {
+        const maxNumber = Math.max(...cells.filter(cell => cell.value !== null).map(cell => cell.value || 0));
+        if (clickedCell.value === maxNumber) {
+          console.log('Checking final path...');
+          const isValid = checkPath();
+          console.log('Path valid?', isValid);
+          if (isValid) {
+            setIsTimerActive(false);
+            setShowSuccess(true);
+          }
+        }
+      }
     }
   };
 
@@ -243,6 +284,22 @@ export const GameGrid: React.FC<GameGridProps> = ({
           );
         })}
       </div>
+
+      {/* Success Popup */}
+      {showSuccess && (
+        <div className="success-popup">
+          <div className="success-content">
+            <h2>Félicitations !</h2>
+            <p>Vous avez réussi en {formatTime(elapsedTime)} !</p>
+            <button 
+              className="button button-primary"
+              onClick={() => setShowSuccess(false)}
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Calendar */}
       <PuzzleCalendar onSelectDay={onSelectDay} />
