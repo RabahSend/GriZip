@@ -82,83 +82,75 @@
   z-index: 1; /* Assurer que la connexion apparaît */
 }
 
-/* Connexions pour le numéro 1 dans toutes les directions */
-.grid-cell.in-path.number-1.to-bottom::before,
-.grid-cell.in-path.number-1.to-top::before,
-.grid-cell.in-path.number-1.to-left::before,
-.grid-cell.in-path.number-1.to-right::before {
+/* Connexions pour le numéro 1 - directions spécifiques */
+/* Vers le bas - ne dépasse que vers le bas */
+.grid-cell.in-path.number-1.to-bottom::before {
+  top: 50%;
+  left: 30%;
+  width: 40%;
+  height: calc(50% + 1px);
   background-color: #4ade80;
   z-index: 1;
   box-shadow: 0 0 0 1px #4ade80;
 }
 
-/* Connexions pour le numéro 8 dans toutes les directions */
-.grid-cell.in-path.number-8.from-top::before,
-.grid-cell.in-path.number-8.from-bottom::before,
-.grid-cell.in-path.number-8.from-left::before,
-.grid-cell.in-path.number-8.from-right::before {
-  background-color: #4ade80;
-  z-index: 1;
-  box-shadow: 0 0 0 1px #4ade80;
-}
-
-/* Connexions horizontales avec ajustements pour éviter les dépassements */
-.grid-cell.in-path.number-1.to-left::before {
-  top: 30%;
-  left: -1px;
-  width: 50%; /* S'arrête au milieu */
-  height: 40%;
-}
-
-.grid-cell.in-path.number-1.to-right::before {
-  top: 30%;
-  left: 50%; /* Commence au milieu */
-  width: 50%;
-  height: 40%;
-}
-
-.grid-cell.in-path.number-8.from-left::before {
-  top: 30%;
-  left: -1px;
-  width: 50%; /* S'arrête au milieu */
-  height: 40%;
-}
-
-.grid-cell.in-path.number-8.from-right::before {
-  top: 30%;
-  left: 50%; /* Commence au milieu */
-  width: 50%;
-  height: 40%;
-}
-
-/* Connexions verticales avec ajustements pour éviter les dépassements */
+/* Vers le haut - ne dépasse que vers le haut */
 .grid-cell.in-path.number-1.to-top::before {
   top: -1px;
   left: 30%;
   width: 40%;
-  height: 50%; /* S'arrête au milieu */
-}
-
-.grid-cell.in-path.number-1.to-bottom::before {
-  top: 50%; /* Commence au milieu */
-  left: 30%;
-  width: 40%;
   height: 50%;
+  background-color: #4ade80;
+  z-index: 1;
+  box-shadow: 0 0 0 1px #4ade80;
 }
 
+/* Vers la gauche - ne dépasse que vers la gauche */
+.grid-cell.in-path.number-1.to-left::before {
+  top: 30%;
+  left: -1px;
+  width: 50%;
+  height: 40%;
+  background-color: #4ade80;
+  z-index: 1;
+  box-shadow: 0 0 0 1px #4ade80;
+}
+
+/* Vers la droite - ne dépasse que vers la droite */
+.grid-cell.in-path.number-1.to-right::before {
+  top: 30%;
+  left: 50%;
+  width: calc(50% + 1px);
+  height: 40%;
+  background-color: #4ade80;
+  z-index: 1;
+  box-shadow: 0 0 0 1px #4ade80;
+}
+
+/* Connexions pour le numéro 8 - directions spécifiques */
+/* Depuis le haut - ne dépasse que vers le haut */
 .grid-cell.in-path.number-8.from-top::before {
   top: -1px;
   left: 30%;
   width: 40%;
-  height: 50%; /* S'arrête au milieu */
+  height: 50%;
+  background-color: #4ade80;
+  z-index: 1;
+  box-shadow: 0 0 0 1px #4ade80;
 }
 
+/* Depuis le bas - ne dépasse que vers le bas */
 .grid-cell.in-path.number-8.from-bottom::before {
-  top: 50%; /* Commence au milieu */
+  top: 50%;
   left: 30%;
   width: 40%;
-  height: 50%;
+  height: calc(50% + 1px);
+  background-color: #4ade80;
+  z-index: 1;
+  box-shadow: 0 0 0 1px #4ade80;
 }
+
+
 
 /* Coin supérieur gauche - arrondi */
 .grid-cell.in-path.from-top.to-left::before,
@@ -241,61 +233,55 @@
 }
 
 .controls {
-  margin: 20px 0;
-}
-
-.controls-row {
   display: flex;
+  gap: 20px;
   justify-content: center;
-  gap: 12px;
   align-items: center;
+  margin-top: 20px;
 }
 
 .grid-size {
   display: flex;
   align-items: center;
-  gap: 8px;
-  white-space: nowrap;
+  gap: 10px;
 }
 
 .grid-size label {
-  font-weight: 500;
+  font-size: 0.9rem;
   color: #333;
 }
 
 .grid-size select {
-  padding: 8px 12px;
+  padding: 5px 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  background: white;
 }
 
 .button {
   padding: 8px 16px;
   border: none;
   border-radius: 4px;
-  font-weight: 500;
   cursor: pointer;
+  font-size: 0.9rem;
   transition: background-color 0.2s;
-  white-space: nowrap;
 }
 
 .button-primary {
-  background: #2563eb;
+  background-color: #2563eb;
   color: white;
 }
 
 .button-primary:hover {
-  background: #1d4ed8;
+  background-color: #1d4ed8;
 }
 
 .button-secondary {
-  background: #e5e7eb;
+  background-color: #f3f4f6;
   color: #374151;
 }
 
 .button-secondary:hover {
-  background: #d1d5db;
+  background-color: #e5e7eb;
 }
 
 .solution-controls {
@@ -358,4 +344,83 @@
   margin-bottom: 1.5rem;
   color: #374151;
   font-size: 1.1rem;
-} 
+}
+
+/* Traversée horizontale complète des cellules numérotées */
+.grid-cell.in-path.from-left.to-right[class*="number-"]::before,
+.grid-cell.in-path.from-right.to-left[class*="number-"]::before {
+  top: 30%;
+  left: -1px;
+  width: calc(100% + 2px);
+  height: 40%;
+  background-color: #4ade80;
+  z-index: 1;
+  box-shadow: 0 0 0 1px #4ade80;
+}
+
+/* Traversée verticale complète des cellules numérotées */
+.grid-cell.in-path.from-top.to-bottom[class*="number-"]::before,
+.grid-cell.in-path.from-bottom.to-top[class*="number-"]::before {
+  top: -1px;
+  left: 30%;
+  width: 40%;
+  height: calc(100% + 2px);
+  background-color: #4ade80;
+  z-index: 1;
+  box-shadow: 0 0 0 1px #4ade80;
+}
+
+/* S'assurer que les numéros restent au-dessus des lignes */
+.grid-cell.in-path .cell-number {
+  z-index: 3;
+  position: relative;
+  background-color: #333;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #4ade80;
+}
+
+/* Connexions pour le dernier numéro - quelle que soit sa valeur */
+/* Depuis la gauche - ne dépasse que vers la gauche */
+.grid-cell.in-path.last-number.from-left::before {
+  top: 30%;
+  left: -1px;
+  width: 50%;
+  height: 40%;
+  background-color: #4ade80;
+  z-index: 1;
+  box-shadow: 0 0 0 1px #4ade80;
+}
+
+/* Depuis la droite - ne dépasse que vers la droite */
+.grid-cell.in-path.last-number.from-right::before {
+  top: 30%;
+  left: 50%;
+  width: calc(50% + 1px);
+  height: 40%;
+  background-color: #4ade80;
+  z-index: 1;
+  box-shadow: 0 0 0 1px #4ade80;
+}
+
+/* Depuis le haut - ne dépasse que vers le haut */
+.grid-cell.in-path.last-number.from-top::before {
+  top: -1px;
+  left: 30%;
+  width: 40%;
+  height: 50%;
+  background-color: #4ade80;
+  z-index: 1;
+  box-shadow: 0 0 0 1px #4ade80;
+}
+
+/* Depuis le bas - ne dépasse que vers le bas */
+.grid-cell.in-path.last-number.from-bottom::before {
+  top: 50%;
+  left: 30%;
+  width: 40%;
+  height: calc(50% + 1px);
+  background-color: #4ade80;
+  z-index: 1;
+  box-shadow: 0 0 0 1px #4ade80;
+}
+
