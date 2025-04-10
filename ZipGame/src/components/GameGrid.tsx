@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './GameGrid.css';
 import { Cell, Grid, Path, PuzzleStatus } from '../types/gameTypes';
 import { PuzzleCalendar } from './PuzzleCalendar';
@@ -45,6 +45,9 @@ export const GameGrid: React.FC<GameGridProps> = ({
   const [showingSolution, setShowingSolution] = useState<boolean>(false);
   const [grid, setGrid] = useState<Grid>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hoverCell, setHoverCell] = useState<{row: number, col: number} | null>(null);
+  const [lastMousePosition, setLastMousePosition] = useState<{x: number, y: number} | null>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let intervalId: number;
@@ -227,7 +230,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
     }
   };
 
-  // Nouvelle fonction pour trouver les cases intermédiaires
+  // Fonction améliorée pour trouver les cases intermédiaires
   const getIntermediateCells = (start: { row: number; col: number }, end: { row: number; col: number }): { row: number; col: number }[] => {
     const cells: { row: number; col: number }[] = [];
     const rowDiff = end.row - start.row;
@@ -237,23 +240,37 @@ export const GameGrid: React.FC<GameGridProps> = ({
     if (rowDiff === 0) {
       const step = colDiff > 0 ? 1 : -1;
       for (let col = start.col + step; col !== end.col + step; col += step) {
-        cells.push({ row: start.row, col });
+        // Vérification de sécurité pour éviter les indices hors limites
+        if (col >= 0 && col < size) {
+          cells.push({ row: start.row, col });
+        }
       }
     }
     // Si on est sur la même colonne
     else if (colDiff === 0) {
       const step = rowDiff > 0 ? 1 : -1;
       for (let row = start.row + step; row !== end.row + step; row += step) {
-        cells.push({ row, col: start.col });
+        // Vérification de sécurité pour éviter les indices hors limites
+        if (row >= 0 && row < size) {
+          cells.push({ row, col: start.col });
+        }
       }
     }
+    // Si le mouvement est diagonal ou irrégulier, retourner un tableau vide
+    // pour éviter les sauts incorrects
     return cells;
   };
 
   const handleMouseEnter = (row: number, col: number, e: React.MouseEvent | { buttons: number }) => {
+    // Vérifier que les coordonnées sont valides
+    if (row < 0 || row >= size || col < 0 || col >= size) return;
+    
+    // Mise à jour de la cellule survolée
+    setHoverCell({ row, col });
+    
     if (!isDragging || !('buttons' in e) || !e.buttons) return;
 
-    // Si on revient sur la case précédente
+    // Si on revient sur la case précédente (pour l'annulation)
     if (path.length > 1 && row === path[path.length - 2].row && col === path[path.length - 2].col) {
       setPath(prev => prev.slice(0, -1));
       return;
@@ -267,20 +284,21 @@ export const GameGrid: React.FC<GameGridProps> = ({
     // Si la case est déjà dans le chemin, ne rien faire
     if (isInPath(row, col)) return;
     
-    // Vérifier si le mouvement est adjacent
-    const isAdjacent = Math.abs(row - lastCell.row) + Math.abs(col - lastCell.col) === 1;
+    // Vérifier si le mouvement est adjacent (horizontal ou vertical uniquement)
+    const isHorizontallyAdjacent = lastCell.row === row && Math.abs(lastCell.col - col) === 1;
+    const isVerticallyAdjacent = lastCell.col === col && Math.abs(lastCell.row - row) === 1;
+    const isAdjacent = isHorizontallyAdjacent || isVerticallyAdjacent;
     
     // Si c'est un mouvement adjacent, l'ajouter directement
     if (isAdjacent) {
-      const newPath = [...path, { row, col }];
+      const newCell = { row, col };
+      const newPath = [...path, newCell];
       
-      // Si c'est un nombre, vérifier si c'est le dernier
+      // Vérifier si c'est un nombre et si c'est le dernier
       if (grid[row][col].value) {
         const maxNumber = Math.max(...grid.flatMap(row => row.filter(cell => cell.value !== null).map(cell => cell.value || 0)));
         if (grid[row][col].value === maxNumber) {
-          console.log('Checking final path...');
           const isValid = checkPath(newPath);
-          console.log('Path valid?', isValid);
           if (isValid) {
             setPath(newPath);
             setIsTimerActive(false);
@@ -294,32 +312,50 @@ export const GameGrid: React.FC<GameGridProps> = ({
       return;
     }
     
-    // Si ce n'est pas adjacent, vérifier le mouvement en ligne droite
-    const intermediateCells = getIntermediateCells(lastCell, { row, col });
-    const isValidPath = intermediateCells.every(cell => !isInPath(cell.row, cell.col));
+    // Pour les mouvements en ligne droite (non adjacents)
     const isSameRow = row === lastCell.row;
     const isSameCol = col === lastCell.col;
     
-    if ((isSameRow || isSameCol) && isValidPath && intermediateCells.length > 0) {
-      const newPath = [...path, ...intermediateCells, { row, col }];
+    if ((isSameRow || isSameCol)) {
+      const intermediateCells = getIntermediateCells(lastCell, { row, col });
+      
+      // Vérifier si toutes les cellules intermédiaires sont valides
+      const isValidPath = intermediateCells.length > 0 && 
+                          intermediateCells.every(cell => 
+                            cell.row >= 0 && cell.row < size && 
+                            cell.col >= 0 && cell.col < size && 
+                            !isInPath(cell.row, cell.col));
+      
+      if (isValidPath) {
+        // Créer un nouveau tableau pour le chemin (plutôt que de modifier l'ancien)
+        const newPath = [...path];
+        
+        // Ajouter chaque cellule intermédiaire une par une
+        for (const cell of intermediateCells) {
+          newPath.push(cell);
+        }
+        
+        // Ajouter la cellule finale
+        newPath.push({ row, col });
 
-      // Si c'est un nombre, vérifier si c'est le dernier
-      if (grid[row][col].value) {
-        const maxNumber = Math.max(...grid.flatMap(row => row.filter(cell => cell.value !== null).map(cell => cell.value || 0)));
-        if (grid[row][col].value === maxNumber) {
-          console.log('Checking final path...');
-          const isValid = checkPath(newPath);
-          console.log('Path valid?', isValid);
-          if (isValid) {
-            setPath(newPath);
-            setIsTimerActive(false);
-            setShowSuccess(true);
-            return;
+        // Vérification finale pour le dernier nombre
+        if (grid[row][col].value) {
+          const maxNumber = Math.max(...grid.flatMap(row => 
+            row.filter(cell => cell.value !== null).map(cell => cell.value || 0)
+          ));
+          if (grid[row][col].value === maxNumber) {
+            const isValid = checkPath(newPath);
+            if (isValid) {
+              setPath(newPath);
+              setIsTimerActive(false);
+              setShowSuccess(true);
+              return;
+            }
           }
         }
+        
+        setPath(newPath);
       }
-      
-      setPath(newPath);
     }
   };
 
@@ -383,6 +419,67 @@ export const GameGrid: React.FC<GameGridProps> = ({
     setCurrentNumber(1);
   };
 
+  // Version améliorée pour le tactile
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    if (!isDragging || !gridRef.current) return;
+    
+    const touch = e.touches[0];
+    const gridRect = gridRef.current.getBoundingClientRect();
+    const cellSize = gridRect.width / size;
+    
+    const xRelative = Math.max(0, Math.min(touch.clientX - gridRect.left, gridRect.width - 1));
+    const yRelative = Math.max(0, Math.min(touch.clientY - gridRect.top, gridRect.height - 1));
+    
+    const col = Math.floor(xRelative / cellSize);
+    const row = Math.floor(yRelative / cellSize);
+    
+    // Vérifier que les coordonnées sont valides
+    if (row >= 0 && row < size && col >= 0 && col < size) {
+      if (!hoverCell || hoverCell.row !== row || hoverCell.col !== col) {
+        setHoverCell({ row, col });
+        handleMouseEnter(row, col, { buttons: 1 });
+      }
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoverCell(null);
+  };
+
+  // Amélioration de la gestion du mouvement de la souris
+  const handleGridMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !gridRef.current) return;
+    
+    // Stocker la dernière position connue de la souris pour référence
+    setLastMousePosition({ x: e.clientX, y: e.clientY });
+    
+    // Calculer la position de la cellule actuelle
+    const gridRect = gridRef.current.getBoundingClientRect();
+    const cellSize = gridRect.width / size;
+    
+    const xRelative = Math.max(0, Math.min(e.clientX - gridRect.left, gridRect.width - 1));
+    const yRelative = Math.max(0, Math.min(e.clientY - gridRect.top, gridRect.height - 1));
+    
+    const col = Math.floor(xRelative / cellSize);
+    const row = Math.floor(yRelative / cellSize);
+    
+    // Vérifier que les coordonnées sont valides
+    if (row >= 0 && row < size && col >= 0 && col < size) {
+      // Éviter les mises à jour inutiles qui pourraient causer des problèmes de performance
+      if (!hoverCell || hoverCell.row !== row || hoverCell.col !== col) {
+        setHoverCell({ row, col });
+        
+        // Simuler un événement d'entrée de souris pour mettre à jour le chemin
+        // uniquement si la cellule est différente de la dernière
+        const lastPathCell = path[path.length - 1];
+        if (lastPathCell && (lastPathCell.row !== row || lastPathCell.col !== col)) {
+          handleMouseEnter(row, col, { buttons: 1 });
+        }
+      }
+    }
+  };
+
   return (
     <div className="game-container">
       {/* Header */}
@@ -391,52 +488,45 @@ export const GameGrid: React.FC<GameGridProps> = ({
         <div className="timer">{formatTime(elapsedTime)}</div>
       </div>
 
-      {/* Grid */}
+      {/* Grid avec référence et gestionnaires améliorés */}
       <div 
+        ref={gridRef}
         className="game-grid"
         style={{
           gridTemplateColumns: `repeat(${size}, 1fr)`,
         }}
+        onMouseMove={handleGridMouseMove}
+        onMouseLeave={() => setHoverCell(null)}
       >
         {grid.flatMap((row, rowIndex) => 
           row.map((cell, colIndex) => {
             const pathDirections = getPathDirections(rowIndex, colIndex);
-
-            // Calcul du numéro maximum (dernier numéro)
+            
+            // Classes existantes
             const maxNumber = Math.max(...grid.flatMap(row => 
               row.filter(cell => cell.value !== null)
                 .map(cell => cell.value || 0)
             ));
-            
-            // Classe pour le numéro
             const numberClass = cell?.value ? `number-${cell.value}` : '';
-            
-            // Ajouter la classe 'last-number' si cette cellule contient le dernier numéro
             const isLastNumber = cell.value === maxNumber;
             const lastNumberClass = isLastNumber ? 'last-number' : '';
+            
+            // Classe pour l'indicateur de survol (simplifiée)
+            const isHovered = hoverCell?.row === rowIndex && hoverCell?.col === colIndex;
+            const hoverClass = isHovered && isDragging ? 'hover-indicator' : '';
 
             return (
               <div
                 key={`${rowIndex}-${colIndex}`}
-                className={`grid-cell ${isInPath(rowIndex, colIndex) ? 'in-path' : ''} ${pathDirections.join(' ')} ${numberClass} ${lastNumberClass}`}
+                className={`grid-cell ${isInPath(rowIndex, colIndex) ? 'in-path' : ''} ${pathDirections.join(' ')} ${numberClass} ${lastNumberClass} ${hoverClass}`}
+                data-position={`${rowIndex}-${colIndex}`}
                 onMouseDown={() => handleMouseDown(rowIndex, colIndex)}
                 onMouseEnter={(e) => handleMouseEnter(rowIndex, colIndex, e)}
                 onTouchStart={(e) => {
                   e.preventDefault();
                   handleMouseDown(rowIndex, colIndex);
                 }}
-                onTouchMove={(e) => {
-                  e.preventDefault();
-                  const touch = e.touches[0];
-                  const element = document.elementFromPoint(touch.clientX, touch.clientY);
-                  if (element?.classList.contains('grid-cell')) {
-                    const cellElement = element;
-                    const index = Array.from(cellElement.parentElement?.children || []).indexOf(cellElement);
-                    const row = Math.floor(index / size);
-                    const col = index % size;
-                    handleMouseEnter(row, col, new MouseEvent('mouseenter', { buttons: 1 }));
-                  }
-                }}
+                onTouchMove={handleTouchMove}
               >
                 {cell.value && (
                   <div className={`cell-number ${isInPath(rowIndex, colIndex) ? 'visited' : ''}`}>
@@ -520,4 +610,37 @@ export const GameGrid: React.FC<GameGridProps> = ({
       )}
     </div>
   );
+};
+
+// Nouvelle fonction pour rendre un connecteur visuel temporaire
+const renderTemporaryConnector = (startCell: {row: number, col: number}, endCell: {row: number, col: number}) => {
+  // Si les cellules ne sont pas alignées, ne pas afficher de connecteur
+  if (startCell.row !== endCell.row && startCell.col !== endCell.col) return null;
+  
+  // Calculer la position et les dimensions du connecteur
+  let style: React.CSSProperties = {};
+  
+  if (startCell.row === endCell.row) {
+    // Connecteur horizontal
+    const left = Math.min(startCell.col, endCell.col) * 100 + 50;
+    const width = Math.abs(endCell.col - startCell.col) * 100;
+    style = {
+      left: `${left}%`,
+      top: '30%',
+      width: `${width}%`,
+      height: '40%'
+    };
+  } else {
+    // Connecteur vertical
+    const top = Math.min(startCell.row, endCell.row) * 100 + 50;
+    const height = Math.abs(endCell.row - startCell.row) * 100;
+    style = {
+      top: `${top}%`,
+      left: '30%',
+      height: `${height}%`,
+      width: '40%'
+    };
+  }
+  
+  return <div className="last-segment-indicator" style={style} />;
 };

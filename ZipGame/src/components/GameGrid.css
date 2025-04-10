@@ -463,3 +463,31 @@
   box-shadow: 0 0 0 1px #4ade80;
 }
 
+/* Nouvel indicateur qui suit le curseur en temps réel */
+.grid-cell.hover-indicator {
+  position: relative;
+}
+
+.grid-cell.hover-indicator::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(74, 222, 128, 0.3);
+  z-index: 4;
+  border: 2px solid #4ade80;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+/* Connecteur visuel temporaire pour le dernier segment */
+.last-segment-indicator {
+  position: absolute;
+  background-color: rgba(74, 222, 128, 0.5);
+  z-index: 3;
+  pointer-events: none;
+  transition: all 0.05s linear;
+}
+
