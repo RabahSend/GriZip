@@ -407,38 +407,49 @@ export const GameGrid: React.FC<GameGridProps> = ({
             row.map((cell, colIndex) => {
               const pathDirections = getPathDirections(rowIndex, colIndex);
 
-              return (
-                <div
-                  key={`${rowIndex}-${colIndex}`}
-                  className={`grid-cell ${isInPath(rowIndex, colIndex) ? 'in-path' : ''} ${cell.value ? `number-${cell.value}` : ''} ${pathDirections.join(' ')}`}
-                  onMouseDown={() => handleMouseDown(rowIndex, colIndex)}
-                  onMouseEnter={(e) => handleMouseEnter(rowIndex, colIndex, e)}
-                  onTouchStart={(e) => {
-                    e.preventDefault();
-                    handleMouseDown(rowIndex, colIndex);
-                  }}
-                  onTouchMove={(e) => {
-                    e.preventDefault();
-                    const touch = e.touches[0];
-                    const element = document.elementFromPoint(touch.clientX, touch.clientY);
-                    if (element?.classList.contains('grid-cell')) {
-                      const cellElement = element;
-                      const index = Array.from(cellElement.parentElement?.children || []).indexOf(cellElement);
-                      const row = Math.floor(index / size);
-                      const col = index % size;
-                      handleMouseEnter(row, col, new MouseEvent('mouseenter', { buttons: 1 }));
-                    }
-                  }}
-                >
-                  {cell.value && (
-                    <div className={`cell-number ${isInPath(rowIndex, colIndex) ? 'visited' : ''}`}>
-                      {cell.value}
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )
+              // Calcul du numéro maximum (dernier numéro)
+              const maxNumber = Math.max(...grid.flatMap(row => 
+                row.filter(cell => cell.value !== null)
+                  .map(cell => cell.value || 0)
+              ));
+              
+              // Classe pour le numéro
+              const numberClass = cell?.value ? `number-${cell.value}` : '';
+              
+              // Ajouter la classe 'last-number' si cette cellule contient le dernier numéro
+              const isLastNumber = cell.value === maxNumber;
+              const lastNumberClass = isLastNumber ? 'last-number' : '';
+            return (
+              <div
+                key={`${rowIndex}-${colIndex}`}
+                className={`grid-cell ${isInPath(rowIndex, colIndex) ? 'in-path' : ''} ${cell.value ? `number-${cell.value}` : ''} ${pathDirections.join(' ')}`}
+                onMouseDown={() => handleMouseDown(rowIndex, colIndex)}
+                onMouseEnter={(e) => handleMouseEnter(rowIndex, colIndex, e)}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  handleMouseDown(rowIndex, colIndex);
+                }}
+                onTouchMove={(e) => {
+                  e.preventDefault();
+                  const touch = e.touches[0];
+                  const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                  if (element?.classList.contains('grid-cell')) {
+                    const cellElement = element;
+                    const index = Array.from(cellElement.parentElement?.children || []).indexOf(cellElement);
+                    const row = Math.floor(index / size);
+                    const col = index % size;
+                    handleMouseEnter(row, col, new MouseEvent('mouseenter', { buttons: 1 }));
+                  }
+                }}
+              >
+                {cell.value && (
+                  <div className={`cell-number ${isInPath(rowIndex, colIndex) ? 'visited' : ''}`}>
+                    {cell.value}
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
 
