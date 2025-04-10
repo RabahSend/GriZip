@@ -164,4 +164,36 @@
 
 .button-secondary:hover {
   background-color: #e5e7eb;
+}
+
+.solution-controls {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
+.button-primary {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.button-primary:hover {
+  background-color: #45a049;
+}
+
+.button-secondary {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.button-secondary:hover {
+  background-color: #da190b;
 } 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './GameGrid.css';
-import { Cell, Path } from '../types/gameTypes';
+import { Cell, Grid, Path } from '../types/gameTypes';
 import { PuzzleCalendar } from './PuzzleCalendar';
+import { findValidPath } from '../utils/gridGenerator';
 
 interface GameGridProps {
   size: number;
@@ -36,6 +37,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
   const [currentNumber, setCurrentNumber] = useState<number>(1);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [startCell, setStartCell] = useState<Cell | null>(null);
+  const [showingSolution, setShowingSolution] = useState<boolean>(false);
 
   useEffect(() => {
     let intervalId: number;
@@ -152,6 +154,42 @@ export const GameGrid: React.FC<GameGridProps> = ({
     };
   }, [isDragging]);
 
+  const handleShowSolution = () => {
+    // Créer une grille correctement initialisée
+    const grid: Grid = Array(size).fill(null).map((_, rowIndex) => 
+      Array(size).fill(null).map((_, colIndex) => ({
+        row: rowIndex,
+        col: colIndex,
+        value: null,
+        isPartOfPath: false,
+        isSelected: false
+      }))
+    );
+
+    // Remplir la grille avec les valeurs des cellules
+    cells.forEach(cell => {
+      grid[cell.row][cell.col].value = cell.value;
+    });
+
+    // Trouver le chemin valide
+    const solution = findValidPath(grid, true);
+    
+    if (solution && Array.isArray(solution)) {
+      setPath(solution);
+      setShowingSolution(true);
+      setCurrentNumber(cells.length); // Marquer comme complet
+    } else {
+      console.error("Impossible de trouver une solution valide");
+      // Optionnel : afficher un message à l'utilisateur
+    }
+  };
+
+  const handleResetSolution = () => {
+    setPath([]);
+    setShowingSolution(false);
+    setCurrentNumber(1);
+  };
+
   return (
     <div className="game-container">
       {/* Header */}
@@ -236,6 +274,23 @@ export const GameGrid: React.FC<GameGridProps> = ({
         >
           Undo
         </button>
+        <div className="solution-controls">
+          {!showingSolution ? (
+            <button 
+              className="button button-primary"
+              onClick={handleShowSolution}
+            >
+              Afficher la solution
+            </button>
+          ) : (
+            <button 
+              className="button button-secondary"
+              onClick={handleResetSolution}
+            >
+              Masquer la solution
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
