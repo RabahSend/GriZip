@@ -101,22 +101,33 @@ export const GameGrid: React.FC<GameGridProps> = ({
     
     if (cellIndex === -1) return directions;
     
-    // Check previous cell
+    // On redéfinit complètement la logique
+    // Les noms des classes indiquent vers où va le chemin DEPUIS cette cellule
+    
+    // Pour la cellule précédente
     if (cellIndex > 0) {
       const prev = path[cellIndex - 1];
-      if (prev.row < row) directions.push('path-up');
-      if (prev.row > row) directions.push('path-down');
-      if (prev.col < col) directions.push('path-left');
-      if (prev.col > col) directions.push('path-right');
+      // Si la cellule précédente est au-dessus, le chemin vient du haut
+      if (prev.row < row) directions.push('from-top');
+      // Si la cellule précédente est en dessous, le chemin vient du bas
+      if (prev.row > row) directions.push('from-bottom');
+      // Si la cellule précédente est à gauche, le chemin vient de gauche
+      if (prev.col < col) directions.push('from-left');
+      // Si la cellule précédente est à droite, le chemin vient de droite
+      if (prev.col > col) directions.push('from-right');
     }
     
-    // Check next cell
+    // Pour la cellule suivante
     if (cellIndex < path.length - 1) {
       const next = path[cellIndex + 1];
-      if (next.row < row) directions.push('path-up');
-      if (next.row > row) directions.push('path-down');
-      if (next.col < col) directions.push('path-left');
-      if (next.col > col) directions.push('path-right');
+      // Si la cellule suivante est au-dessus, le chemin va vers le haut
+      if (next.row < row) directions.push('to-top');
+      // Si la cellule suivante est en dessous, le chemin va vers le bas
+      if (next.row > row) directions.push('to-bottom');
+      // Si la cellule suivante est à gauche, le chemin va vers la gauche
+      if (next.col < col) directions.push('to-left');
+      // Si la cellule suivante est à droite, le chemin va vers la droite
+      if (next.col > col) directions.push('to-right');
     }
     
     return directions;
@@ -277,12 +288,15 @@ export const GameGrid: React.FC<GameGridProps> = ({
           const row = Math.floor(index / size);
           const col = index % size;
           const cell = cells.find(c => c.row === row && c.col === col);
-          const pathDirections = cell ? getPathDirections(row, col) : [];
+          const pathDirections = getPathDirections(row, col);
+          
+          // Ajouter une classe pour le numéro de la cellule
+          const numberClass = cell?.value ? `number-${cell.value}` : '';
 
           return (
             <div
               key={index}
-              className={`grid-cell ${isInPath(row, col) ? 'in-path' : ''} ${pathDirections.join(' ')}`}
+              className={`grid-cell ${isInPath(row, col) ? 'in-path' : ''} ${pathDirections.join(' ')} ${numberClass}`}
               onMouseDown={() => handleMouseDown(row, col)}
               onMouseEnter={(e) => handleMouseEnter(row, col, e)}
               onTouchStart={(e) => {
@@ -303,7 +317,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
               }}
             >
               {cell?.value && (
-                <div className="cell-number">
+                <div className={`cell-number ${isInPath(row, col) ? 'visited' : ''}`}>
                   {cell.value}
                 </div>
               )}
