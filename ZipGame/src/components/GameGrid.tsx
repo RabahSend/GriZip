@@ -66,8 +66,32 @@ export const GameGrid: React.FC<GameGridProps> = ({
     }
   }, [resetPath]);
 
-  const checkPath = () => {
-    // Force le succès
+  const checkPath = (pathToCheck: Path) => {
+    // Récupérer tous les nombres dans l'ordre
+    const numbers = cells
+      .filter(cell => cell.value !== null)
+      .sort((a, b) => (a.value || 0) - (b.value || 0));
+
+    console.log('Numbers to check:', numbers);
+    console.log('Current path:', pathToCheck);
+
+    // Vérifier que le chemin passe par tous les nombres dans l'ordre
+    let lastIndex = -1;
+    for (const number of numbers) {
+      // Trouver l'index de ce nombre dans le chemin
+      const pathIndex = pathToCheck.findIndex(p => p.row === number.row && p.col === number.col);
+      console.log(`Checking number ${number.value} at (${number.row},${number.col}), found at path index: ${pathIndex}`);
+      
+      // Si le nombre n'est pas dans le chemin ou n'est pas dans le bon ordre
+      if (pathIndex === -1 || pathIndex < lastIndex) {
+        console.log(`Invalid path: number ${number.value} is not in correct order`);
+        return false;
+      }
+      
+      lastIndex = pathIndex;
+    }
+
+    console.log('Path is valid!');
     return true;
   };
 
@@ -136,7 +160,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
           const maxNumber = Math.max(...cells.filter(cell => cell.value !== null).map(cell => cell.value || 0));
           if (clickedCell.value === maxNumber) {
             console.log('Checking final path...');
-            const isValid = checkPath();
+            const isValid = checkPath(newPath);
             console.log('Path valid?', isValid);
             if (isValid) {
               setIsTimerActive(false);
@@ -163,21 +187,24 @@ export const GameGrid: React.FC<GameGridProps> = ({
     if (isAdjacent && !isInPath(row, col)) {
       const clickedCell = cells.find(c => c.row === row && c.col === col);
       const newPath = [...path, { row, col }];
-      setPath(newPath);
 
       // Si c'est un nombre, vérifier si c'est le dernier
       if (clickedCell?.value) {
         const maxNumber = Math.max(...cells.filter(cell => cell.value !== null).map(cell => cell.value || 0));
         if (clickedCell.value === maxNumber) {
           console.log('Checking final path...');
-          const isValid = checkPath();
+          const isValid = checkPath(newPath);
           console.log('Path valid?', isValid);
           if (isValid) {
+            setPath(newPath);
             setIsTimerActive(false);
             setShowSuccess(true);
+            return;
           }
         }
       }
+      
+      setPath(newPath);
     }
   };
 
