@@ -44,6 +44,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [showingSolution, setShowingSolution] = useState<boolean>(false);
   const [grid, setGrid] = useState<Grid>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     let intervalId: number;
@@ -68,18 +69,48 @@ export const GameGrid: React.FC<GameGridProps> = ({
       setIsTimerActive(false);
       setElapsedTime(0);
       setShowSuccess(false);
+      setShowingSolution(false);
     }
   }, [resetPath]);
 
   useEffect(() => {
-    const newGrid = generateGrid(size, size, numberCount, 'MEDIUM', selectedDate);
-    setGrid(newGrid);
-    setPath([]);
-    setCurrentNumber(1);
-    setIsTimerActive(false);
-    setElapsedTime(0);
-    setShowSuccess(false);
+    setIsLoading(true);
     setShowingSolution(false);
+    
+    // Créer une nouvelle instance du Worker
+    const worker = new Worker(new URL('../workers/gridWorker.ts', import.meta.url), { type: 'module' });
+    
+    // Gérer les messages du Worker
+    worker.onmessage = (e) => {
+      const { type, grid, error } = e.data;
+      
+      if (type === 'success') {
+        setGrid(grid);
+        setPath([]);
+        setCurrentNumber(1);
+        setIsTimerActive(false);
+        setElapsedTime(0);
+        setShowSuccess(false);
+        setShowingSolution(false);
+        setIsLoading(false);
+      } else {
+        console.error('Error generating grid:', error);
+        setIsLoading(false);
+      }
+    };
+    
+    // Envoyer les paramètres au Worker
+    worker.postMessage({
+      size,
+      numberCount,
+      difficulty: 'MEDIUM',
+      seed: selectedDate.getTime()
+    });
+    
+    // Nettoyer le Worker quand le composant est démonté
+    return () => {
+      worker.terminate();
+    };
   }, [size, numberCount, selectedDate]);
 
   const checkPath = (pathToCheck: Path) => {
@@ -332,11 +363,17 @@ export const GameGrid: React.FC<GameGridProps> = ({
       setPath(solution);
       setShowingSolution(true);
       setCurrentNumber(grid.length); // Marquer comme complet
-      onPuzzleComplete(selectedDate, true); // Marquer comme résolu avec aide
+      
+      // Vérifier si le puzzle a déjà été complété sans aide
+      const dateString = selectedDate.toISOString().split('T')[0];
+      const currentStatus = puzzleStatuses[dateString];
+      if (currentStatus !== 'COMPLETED') {
+        onPuzzleComplete(selectedDate, true); // Marquer comme résolu avec aide seulement si pas déjà complété
+      }
+      
       setIsTimerActive(false); // Arrêter le timer
     } else {
       console.error("Impossible de trouver une solution valide");
-      // Optionnel : afficher un message à l'utilisateur
     }
   };
 
@@ -361,41 +398,47 @@ export const GameGrid: React.FC<GameGridProps> = ({
           gridTemplateColumns: `repeat(${size}, 1fr)`,
         }}
       >
-        {grid.flatMap((row, rowIndex) => 
-          row.map((cell, colIndex) => {
-            const pathDirections = getPathDirections(rowIndex, colIndex);
+        {isLoading ? (
+          <div className="loading-container">
+            <div className="spinner" />
+          </div>
+        ) : (
+          grid.flatMap((row, rowIndex) => 
+            row.map((cell, colIndex) => {
+              const pathDirections = getPathDirections(rowIndex, colIndex);
 
-            return (
-              <div
-                key={`${rowIndex}-${colIndex}`}
-                className={`grid-cell ${isInPath(rowIndex, colIndex) ? 'in-path' : ''} ${cell.value ? `number-${cell.value}` : ''} ${pathDirections.join(' ')}`}
-                onMouseDown={() => handleMouseDown(rowIndex, colIndex)}
-                onMouseEnter={(e) => handleMouseEnter(rowIndex, colIndex, e)}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  handleMouseDown(rowIndex, colIndex);
-                }}
-                onTouchMove={(e) => {
-                  e.preventDefault();
-                  const touch = e.touches[0];
-                  const element = document.elementFromPoint(touch.clientX, touch.clientY);
-                  if (element?.classList.contains('grid-cell')) {
-                    const cellElement = element;
-                    const index = Array.from(cellElement.parentElement?.children || []).indexOf(cellElement);
-                    const row = Math.floor(index / size);
-                    const col = index % size;
-                    handleMouseEnter(row, col, new MouseEvent('mouseenter', { buttons: 1 }));
-                  }
-                }}
-              >
-                {cell.value && (
-                  <div className={`cell-number ${isInPath(rowIndex, colIndex) ? 'visited' : ''}`}>
-                    {cell.value}
-                  </div>
-                )}
-              </div>
-            );
-          })
+              return (
+                <div
+                  key={`${rowIndex}-${colIndex}`}
+                  className={`grid-cell ${isInPath(rowIndex, colIndex) ? 'in-path' : ''} ${cell.value ? `number-${cell.value}` : ''} ${pathDirections.join(' ')}`}
+                  onMouseDown={() => handleMouseDown(rowIndex, colIndex)}
+                  onMouseEnter={(e) => handleMouseEnter(rowIndex, colIndex, e)}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    handleMouseDown(rowIndex, colIndex);
+                  }}
+                  onTouchMove={(e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const element = document.elementFromPoint(touch.clientX, touch.clientY);
+                    if (element?.classList.contains('grid-cell')) {
+                      const cellElement = element;
+                      const index = Array.from(cellElement.parentElement?.children || []).indexOf(cellElement);
+                      const row = Math.floor(index / size);
+                      const col = index % size;
+                      handleMouseEnter(row, col, new MouseEvent('mouseenter', { buttons: 1 }));
+                    }
+                  }}
+                >
+                  {cell.value && (
+                    <div className={`cell-number ${isInPath(rowIndex, colIndex) ? 'visited' : ''}`}>
+                      {cell.value}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )
         )}
       </div>
 
