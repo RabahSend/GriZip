@@ -1,52 +1,9 @@
 import { Grid, Cell, Difficulty, Coordinate, ValidationResult, Path } from '../types/gameTypes';
 
-/**
- * Crée une grille avec un motif en spirale
- */
-function createSpiralGrid(rows: number, cols: number, numberCount: number): Grid {
-  const grid = createEmptyGrid(rows, cols);
-  let value = 1;
-  let top = 0, bottom = rows - 1, left = 0, right = cols - 1;
-  
-  while (value <= numberCount && top <= bottom && left <= right) {
-    // Haut
-    for (let i = left; i <= right && value <= numberCount; i += 2) {
-      grid[top][i].value = value++;
-    }
-    top++;
-    
-    // Droite
-    for (let i = top; i <= bottom && value <= numberCount; i += 2) {
-      grid[i][right].value = value++;
-    }
-    right--;
-    
-    // Bas
-    for (let i = right; i >= left && value <= numberCount; i -= 2) {
-      grid[bottom][i].value = value++;
-    }
-    bottom--;
-    
-    // Gauche
-    for (let i = bottom; i >= top && value <= numberCount; i -= 2) {
-      grid[i][left].value = value++;
-    }
-    left++;
-  }
-  
-  // Si on n'a pas placé tous les nombres, les placer en diagonale
-  if (value <= numberCount) {
-    for (let i = 0; i < rows && value <= numberCount; i++) {
-      for (let j = 0; j < cols && value <= numberCount; j++) {
-        if (grid[i][j].value === null) {
-          grid[i][j].value = value++;
-        }
-      }
-    }
-  }
-  
-  return grid;
-}
+// Stockage du tracé utilisé pour chaque grille générée
+let lastGeneratedTrace: Path | null = null;
+
+
 
 /**
  * Crée une grille vide avec les dimensions spécifiées
@@ -420,9 +377,521 @@ function findPathBetweenCells(grid: Grid, start: Coordinate, end: Coordinate): b
 }
 
 /**
+ * Génère une grille complète avec un tracé valide et des nombres placés dessus
+ */
+export function generateGrid(rows: number, cols: number, numberCount: number, difficulty: Difficulty, seed?: Date): { grid: Grid, trace: Path } {
+  // Créer un générateur de nombres aléatoires avec seed si fourni
+  const random = createRandomGenerator(seed);
+  
+  // Créer une grille vide
+  const grid = createEmptyGrid(rows, cols);
+  
+  // Générer un tracé complet selon la difficulté
+  let trace: Path;
+  
+  switch(difficulty) {
+    case 'EASY':
+      trace = generateEasyTrace(rows, cols, random);
+      break;
+    case 'MEDIUM':
+      trace = generateSemiRandomTrace(rows, cols, random);
+      break;
+    case 'HARD':
+    default:
+      trace = generateRandomTrace(rows, cols, random);
+      break;
+  }
+  
+  // Stocker le tracé pour la validation ultérieure
+  lastGeneratedTrace = trace;
+  
+  // Placer les nombres sur le tracé
+  placeNumbersOnTraceGuaranteedValid(grid, trace, numberCount, difficulty, random);
+  
+  // Retourner à la fois la grille et le tracé
+  return { grid, trace };
+}
+
+/**
+ * Place des nombres sur le tracé de manière à garantir un chemin valide
+ * Avec un espacement variable utilisant une variance aléatoire
+ */
+function placeNumbersOnTraceGuaranteedValid(grid: Grid, trace: Path, numberCount: number, difficulty: Difficulty, random: () => number): void {
+  // Vérifications de base
+  if (!trace || trace.length === 0) {
+    throw new Error("Le tracé est vide ou invalide");
+  }
+  
+  if (numberCount > trace.length) {
+    throw new Error(`Le nombre de valeurs (${numberCount}) est supérieur à la longueur du tracé (${trace.length})`);
+  }
+  
+  // Réinitialiser la grille
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      grid[i][j].value = null;
+    }
+  }
+  
+  // Toujours placer le premier nombre (1) au début du tracé
+  const firstPos = trace[0];
+  grid[firstPos.row][firstPos.col].value = 1;
+  
+  // Si on n'a qu'un seul nombre, on a terminé
+  if (numberCount === 1) return;
+  
+  // Toujours placer le dernier nombre à la fin du tracé
+  const lastPos = trace[trace.length - 1];
+  grid[lastPos.row][lastPos.col].value = numberCount;
+  
+  // S'il n'y a que deux nombres, on a terminé
+  if (numberCount === 2) return;
+  
+  // Déterminer l'amplitude maximale de variance selon la difficulté
+  let varianceAmplitude = 0;
+  switch(difficulty) {
+    case 'EASY':
+      varianceAmplitude = 0.1; // Variance faible
+      break;
+    case 'MEDIUM':
+      varianceAmplitude = 0.2; // Variance moyenne
+      break;
+    case 'HARD':
+      varianceAmplitude = 0.3; // Variance élevée
+      break;
+    default:
+      varianceAmplitude = 0.2;
+  }
+  
+  // Calculer l'espacement théorique régulier
+  const spacing = (trace.length - 1) / (numberCount - 1);
+  
+  // Tableau pour stocker les indices choisis afin de garantir l'ordre
+  const chosenIndices: number[] = [0, trace.length - 1]; // Indices du premier et dernier nombre
+  
+  // Pour les nombres intermédiaires, calculer des positions avec variance
+  for (let num = 2; num < numberCount; num++) {
+    // Position idéale avec espacement régulier
+    const idealIndex = (num - 1) * spacing;
+    
+    // Calculer la borne minimale (position du nombre précédent)
+    const minBound = chosenIndices[num - 2] + 1;
+    
+    // Calculer la borne maximale (pour éviter de dépasser le nombre suivant)
+    // Pour le dernier nombre intermédiaire, la borne max est la position du dernier nombre (fixe)
+    const maxBound = (num === numberCount - 1) 
+      ? trace.length - 2 
+      : Math.min(trace.length - 2, Math.floor(idealIndex + spacing / 2));
+    
+    // S'assurer que minBound <= maxBound
+    if (minBound > maxBound) {
+      // Si l'intervalle est invalide, utiliser la position idéale arrondie
+      const index = Math.round(idealIndex);
+      chosenIndices.push(index);
+      const pos = trace[index];
+      grid[pos.row][pos.col].value = num;
+      continue;
+    }
+    
+    // Générer une variance dans les limites autorisées
+    const variance = (random() * 2 - 1) * varianceAmplitude * spacing;
+    
+    // Calculer l'indice avec variance, borné entre minBound et maxBound
+    const indexWithVariance = Math.max(minBound, Math.min(maxBound, Math.round(idealIndex + variance)));
+    
+    // Stocker l'indice choisi
+    chosenIndices.push(indexWithVariance);
+    
+    // Placer le nombre à la position correspondante
+    const pos = trace[indexWithVariance];
+    grid[pos.row][pos.col].value = num;
+  }
+}
+
+
+
+/**
+ * Crée un générateur de nombres aléatoires basé sur un seed
+ */
+function createRandomGenerator(seed?: Date): () => number {
+  let seedValue = seed ? seed.getTime() : Date.now();
+  
+  return () => {
+        seedValue = (seedValue * 48271 + 16807) % 2147483647;
+        return (seedValue & 0x7fffffff) / 0x7fffffff;
+      };
+}
+
+/**
+ * Génère un tracé vraiment aléatoire qui couvre toute la grille
+ */
+export function generateRandomTrace(rows: number, cols: number, random: () => number): Path {
+  // Cas spécial: grille 1×1
+  if (rows === 1 && cols === 1) {
+    return [{ row: 0, col: 0 }];
+  }
+  
+  // Cas spécial: grilles 1×N ou N×1
+  if (rows === 1 || cols === 1) {
+    const trace: Path = [];
+    
+    if (rows === 1) {
+      // Tracé horizontal
+      for (let c = 0; c < cols; c++) {
+        trace.push({ row: 0, col: c });
+      }
+    } else {
+      // Tracé vertical
+      for (let r = 0; r < rows; r++) {
+        trace.push({ row: r, col: 0 });
+      }
+    }
+    
+    return trace;
+  }
+  
+  // Pour les autres cas, utiliser l'algorithme de backtracking
+  
+  // Créer une matrice pour suivre les cellules visitées
+  const visited: boolean[][] = Array(rows).fill(false).map(() => Array(cols).fill(false));
+  
+  // Chemin à construire
+  const trace: Path = [];
+  
+  // Choisir un point de départ aléatoire
+  const startRow = Math.floor(random() * rows);
+  const startCol = Math.floor(random() * cols);
+  
+  // Ajouter le point de départ au tracé
+  trace.push({ row: startRow, col: startCol });
+  visited[startRow][startCol] = true;
+  
+  // Directions possibles: haut, droite, bas, gauche
+  const directions = [
+    { row: -1, col: 0 },
+    { row: 0, col: 1 },
+    { row: 1, col: 0 },
+    { row: 0, col: -1 }
+  ];
+  
+  // Utiliser un algorithme de backtracking pour générer le tracé
+  function backtrack(currentRow: number, currentCol: number): boolean {
+    // Si toutes les cellules sont visitées, le tracé est complet
+    if (trace.length === rows * cols) {
+      console.log("Tracé complet" + trace.length + " " + rows * cols);
+      return true;
+    }
+    
+    // Mélanger aléatoirement les directions
+    const shuffledDirections = [...directions];
+    for (let i = shuffledDirections.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [shuffledDirections[i], shuffledDirections[j]] = [shuffledDirections[j], shuffledDirections[i]];
+    }
+    
+    // Essayer chaque direction
+    for (const dir of shuffledDirections) {
+      const newRow = currentRow + dir.row;
+      const newCol = currentCol + dir.col;
+      
+      // Vérifier si la nouvelle position est valide
+      if (
+        newRow >= 0 && newRow < rows &&
+        newCol >= 0 && newCol < cols &&
+        !visited[newRow][newCol]
+      ) {
+        // Ajouter au tracé
+        trace.push({ row: newRow, col: newCol });
+        visited[newRow][newCol] = true;
+        
+        // Continuer récursivement depuis cette nouvelle position
+        if (backtrack(newRow, newCol)) {
+          return true;
+        }
+        
+        // Si cette direction ne mène pas à une solution complète,
+        // retirer cette position du tracé et essayer une autre direction
+        trace.pop();
+        visited[newRow][newCol] = false;
+      }
+    }
+    
+    // Aucune direction n'a conduit à une solution complète
+    return false;
+  }
+  
+  // Commencer le backtracking depuis le point de départ
+  const success = backtrack(startRow, startCol);
+  
+  // Si le backtracking a échoué, on génère un tracé alternatif
+  if (!success || trace.length !== rows * cols) {
+    // Réinitialiser le tracé
+    trace.length = 0;
+    
+    // On crée un tracé en "serpentin"
+    let goingRight = true;
+    
+    for (let r = 0; r < rows; r++) {
+      if (goingRight) {
+        for (let c = 0; c < cols; c++) {
+          trace.push({ row: r, col: c });
+        }
+      } else {
+        for (let c = cols - 1; c >= 0; c--) {
+          trace.push({ row: r, col: c });
+        }
+      }
+      goingRight = !goingRight;
+    }
+  }
+  
+  return trace;
+}
+
+
+/**
+ * Génère un tracé en serpentin (alternant gauche-droite puis droite-gauche)
+ * Cette fonction est maintenant utilisée comme solution de repli
+ */
+function generateSerpentineTrace(rows: number, cols: number, random: () => number): Path {
+  const trace: Path = [];
+  
+  // Déterminer aléatoirement le point de départ (en haut à gauche ou en haut à droite)
+  const startFromLeft = random() < 0.5;
+  
+  for (let i = 0; i < rows; i++) {
+    if ((i % 2 === 0 && startFromLeft) || (i % 2 !== 0 && !startFromLeft)) {
+      // De gauche à droite
+      for (let j = 0; j < cols; j++) {
+        trace.push({ row: i, col: j });
+      }
+    } else {
+      // De droite à gauche
+      for (let j = cols - 1; j >= 0; j--) {
+        trace.push({ row: i, col: j });
+      }
+    }
+  }
+  
+  return trace;
+}
+
+
+/**
+ * Méthode alternative qui génère un tracé en spirale plus simple
+ * Cette fonction est utilisée comme fallback si l'autre méthode échoue
+ */
+function generateSimpleSpiralTrace(rows: number, cols: number): Path {
+  const trace: Path = [];
+  
+  // Commencer par le coin supérieur gauche
+  let top = 0, bottom = rows - 1;
+  let left = 0, right = cols - 1;
+  
+  while (top <= bottom && left <= right) {
+    // Parcourir de gauche à droite sur la rangée supérieure
+    for (let col = left; col <= right; col++) {
+      trace.push({ row: top, col });
+    }
+    top++;
+    
+    // Parcourir de haut en bas sur la colonne droite
+    for (let row = top; row <= bottom; row++) {
+      trace.push({ row, col: right });
+    }
+    right--;
+    
+    // Parcourir de droite à gauche sur la rangée inférieure (si nécessaire)
+    if (top <= bottom) {
+      for (let col = right; col >= left; col--) {
+        trace.push({ row: bottom, col });
+      }
+      bottom--;
+    }
+    
+    // Parcourir de bas en haut sur la colonne gauche (si nécessaire)
+    if (left <= right) {
+      for (let row = bottom; row >= top; row--) {
+        trace.push({ row, col: left });
+      }
+      left++;
+    }
+  }
+  
+  return trace;
+}
+
+/**
+ * Génère un tracé en zigzag
+ */
+function generateEasyTrace(rows: number, cols: number, random: () => number): Path {
+  // Choisir aléatoirement entre les deux types de tracés
+  let originalTrace: Path;
+  
+  if (random() < 0.5) {
+    // 50% de chance de générer un tracé serpentin
+    originalTrace = generateSerpentineTrace(rows, cols, random);
+  } else {
+    // 50% de chance de générer un tracé en spirale
+    originalTrace = generateSimpleSpiralTrace(rows, cols);
+  }
+  
+  // Sélectionner aléatoirement un angle de rotation (90°, 180° ou 270°)
+  const rotationAngles = [90, 180, 270];
+  const selectedAngle = rotationAngles[Math.floor(random() * rotationAngles.length)];
+  
+
+  // Appliquer la rotation au tracé
+  const rotatedTrace: Path = [];
+  
+  for (const point of originalTrace) {
+    let newPoint: Coordinate;
+    
+    switch (selectedAngle) {
+      case 90:
+        // (row, col) → (col, rows-1-row)
+        newPoint = { row: point.col, col: rows - 1 - point.row };
+        break;
+      case 180:
+        // (row, col) → (rows-1-row, cols-1-col)
+        newPoint = { row: rows - 1 - point.row, col: cols - 1 - point.col };
+        break;
+      case 270:
+        // (row, col) → (cols-1-col, row)
+        newPoint = { row: cols - 1 - point.col, col: point.row };
+        break;
+      default:
+        newPoint = { ...point }; // Pas de rotation (ne devrait pas arriver)
+    }
+    
+    rotatedTrace.push(newPoint);
+  }
+  
+  return rotatedTrace;
+}
+
+
+
+/**
+ * Valide une grille complète
+ */
+export function validateGrid(grid: Grid, numberCount: number): ValidationResult {
+  const errors: string[] = [];
+  
+  // Vérifier que tous les nombres de 1 à numberCount sont présents
+  const numbers = new Set<number>();
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      const value = grid[i][j].value;
+      if (value !== null && value >= 1 && value <= numberCount) {
+        numbers.add(value);
+      }
+    }
+  }
+  
+  const hasAllNumbers = numbers.size === numberCount;
+  if (!hasAllNumbers) {
+    console.error(`La grille ne contient pas tous les nombres de 1 à ${numberCount}`);
+    errors.push(`La grille ne contient pas tous les nombres de 1 à ${numberCount}`);
+  }
+  
+  // Exiger un chemin complet qui passe par toutes les cases
+  const path = findValidPath(grid, true);
+  const hasValidPath = path !== false;
+  if (!hasValidPath) {
+    console.error('Il n\'existe pas de chemin valide passant par toutes les cases');
+    errors.push('Il n\'existe pas de chemin valide passant par toutes les cases');
+  }
+  
+  return {
+    isValid: hasAllNumbers && hasValidPath,
+    hasAllNumbers,
+    hasValidPath,
+    errors: errors.length > 0 ? errors : undefined
+  };
+}
+
+/**
+ * Ajuste la difficulté en fonction du jour de la semaine
+ */
+export function adjustDifficultyByDay(): Difficulty {
+  const day = new Date().getDay(); // 0 = dimanche, 1 = lundi, ..., 6 = samedi
+  
+  // Difficulté progressive au fil de la semaine
+  if (day === 0) return 'HARD'; // Dimanche
+  if (day <= 2) return 'EASY'; // Lundi, Mardi
+  if (day <= 5) return 'MEDIUM'; // Mercredi, Jeudi, Vendredi
+  return 'HARD'; // Samedi
+}
+
+/**
+ * Calcule la complexité d'une grille
+ */
+export function calculateGridComplexity(grid: Grid): number {
+  // Trouver les positions des nombres
+  const numberPositions = new Map<number, Coordinate>();
+  let maxNumber = 0;
+  
+  for (let i = 0; i < grid.length; i++) {
+    for (let j = 0; j < grid[i].length; j++) {
+      const value = grid[i][j].value;
+      if (value !== null) {
+        numberPositions.set(value, { row: i, col: j });
+        maxNumber = Math.max(maxNumber, value);
+      }
+    }
+  }
+  
+  if (maxNumber <= 1) return 0.1; // Éviter de retourner 0 pour faciliter les comparaisons
+  
+  // Calculer la distance moyenne entre les nombres consécutifs
+  let totalDistance = 0;
+  let connections = 0;
+  
+  for (let i = 1; i < maxNumber; i++) {
+    const start = numberPositions.get(i);
+    const end = numberPositions.get(i + 1);
+    
+    if (start && end) {
+      // Distance de Manhattan
+      const distance = Math.abs(start.row - end.row) + Math.abs(start.col - end.col);
+      totalDistance += distance;
+      connections++;
+    }
+  }
+  
+  // Calculer la complexité normalisée (0.1-1)
+  if (connections === 0) return 0.1;
+  
+  const avgDistance = totalDistance / connections;
+  const maxPossibleDistance = grid.length + grid[0].length - 2;
+  
+  // Normaliser entre 0.1 et 1 (éviter 0 pour les tests de comparaison)
+  return Math.max(0.1, Math.min(avgDistance / maxPossibleDistance, 1));
+}
+
+/**
+ * Mélange un tableau en place (algorithme de Fisher-Yates)
+ */
+function shuffleArray<T>(array: T[]): void {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+/**
  * Vérifie s'il existe un chemin valide entre tous les nombres consécutifs
  */
 export function findValidPath(grid: Grid, findCompletePath: boolean = false): boolean | Path {
+  // Si on a un tracé généré précédemment et qu'on demande un chemin complet, le retourner directement
+  if (findCompletePath && lastGeneratedTrace) {
+    return lastGeneratedTrace;
+  }
+  
+  console.log('findValidPath',  lastGeneratedTrace, findCompletePath);
+
+  // Le reste de la fonction reste inchangé pour les cas où le tracé n'est pas disponible
   const rows = grid.length;
   const cols = grid[0].length;
   
@@ -452,9 +921,8 @@ export function findValidPath(grid: Grid, findCompletePath: boolean = false): bo
     }
   }
   
+  // Si on demande un chemin complet et qu'on n'avait pas de tracé stocké
   if (findCompletePath) {
-    // Si nous demandons un chemin complet, utiliser la fonction améliorée
-    // qui garantit qu'une cellule n'est pas traversée plus d'une fois
     return findCompleteValidPath(grid, numberPositions, maxNumber);
   }
   
@@ -467,7 +935,6 @@ export function findValidPath(grid: Grid, findCompletePath: boolean = false): bo
       return false;
     }
     
-    // Utiliser BFS pour vérifier s'il existe un chemin entre start et end
     const pathExists = findPathBetweenCells(grid, start, end);
     if (!pathExists) {
       return false;
@@ -636,382 +1103,194 @@ function findPathBetweenCellsWithPath(grid: Grid, start: Coordinate, end: Coordi
   return path;
 }
 
-// Remplacer l'ancien generateCompletePath par cette nouvelle version améliorée
-function generateCompletePath(grid: Grid): Path | false {
-  // Trouver les positions des nombres
-  const numberPositions = new Map<number, Coordinate>();
-  let maxNumber = 0;
-  
-  for (let i = 0; i < grid.length; i++) {
-    for (let j = 0; j < grid[i].length; j++) {
-      const value = grid[i][j].value;
-      if (value !== null) {
-        numberPositions.set(value, { row: i, col: j });
-        maxNumber = Math.max(maxNumber, value);
-      }
-    }
-  }
-  
-  return findCompleteValidPath(grid, numberPositions, maxNumber);
-}
-
 /**
- * Génère une grille complète avec un chemin valide
+ * Génère un tracé semi-aléatoire avec le début et la fin fixés
+ * Idéal pour le niveau de difficulté MEDIUM
  */
-export function generateGrid(rows: number, cols: number, numberCount: number, difficulty: Difficulty, seed?: Date): Grid {
-  // Réessayer jusqu'à trouver une solution valide
-  while (true) {
-    try {
-      // Créer un seed unique qui change chaque seconde
-      let seedValue: number;
-      if (seed) {
-        seedValue = seed.getTime();
-      } else {
-        seedValue = Date.now();
-      }
-
-      // Améliorer la fonction random avec plus d'entropie
-      const random = () => {
-        seedValue = (seedValue * 48271 + 16807) % 2147483647;
-        return (seedValue & 0x7fffffff) / 0x7fffffff;
-      };
-
-      // Remplacer Math.random par notre fonction random
-      const originalMathRandom = Math.random;
-      Math.random = random;
-
-      // Augmenter le nombre de tentatives pour trouver une solution valide
-      const maxAttempts = 200;
-      let attempt = 0;
-      let validGrid: Grid | null = null;
-
-      while (attempt < maxAttempts && !validGrid) {
-        attempt++;
-        const grid = createEmptyGrid(rows, cols);
-        const filledGrid = placeNumbersInGrid(grid, numberCount);
-        
-        // Vérifier que la grille a une solution qui passe par toutes les cases
-        const path = findValidPath(filledGrid, true);
-        
-        // On accepte uniquement les grilles dont la solution passe par toutes les cases
-        if (Array.isArray(path) && path.length === rows * cols) {
-          validGrid = filledGrid;
-          break;
-        }
-      }
-
-      // Si on n'a pas trouvé de grille valide après toutes les tentatives, on réessaye
-      // avec des contraintes plus simples jusqu'à trouver une solution
-      if (!validGrid) {
-        attempt = 0;
-        while (attempt < maxAttempts && !validGrid) {
-          attempt++;
-          const grid = createEmptyGrid(rows, cols);
-          const filledGrid = placeNumbersInGrid(grid, numberCount);
-          
-          const path = findValidPath(filledGrid, true);
-          if (Array.isArray(path) && path.length === rows * cols) {
-            validGrid = filledGrid;
-            break;
-          }
-        }
-      }
-
-      // Restaurer la fonction Math.random originale
-      Math.random = originalMathRandom;
-
-      // Si on a trouvé une solution valide, la retourner
-      if (validGrid) {
-        // IMPORTANT: Vérifier et corriger le nombre de valeurs dans la grille
-        ensureCorrectNumberCount(validGrid, numberCount);
-        return validGrid;
-      }
-
-      // Si on n'a pas trouvé de solution, on va réessayer avec un nouveau seed
-      seed = new Date(seed ? seed.getTime() + 1000 : Date.now() + 1000);
-      
-    } catch (error) {
-      // En cas d'erreur, on réessaye avec un nouveau seed
-      seed = new Date(seed ? seed.getTime() + 1000 : Date.now() + 1000);
-      continue;
-    }
-  }
-}
-
-/**
- * S'assure qu'une grille contient exactement le nombre spécifié de valeurs
- */
-function ensureCorrectNumberCount(grid: Grid, numberCount: number): void {
-  // Compter le nombre actuel de valeurs
-  let currentCount = 0;
-  const maxValue = {value: 0};
-  
-  for (let i = 0; i < grid.length; i++) {
-    for (let j = 0; j < grid[i].length; j++) {
-      if (grid[i][j].value !== null) {
-        currentCount++;
-        maxValue.value = Math.max(maxValue.value, grid[i][j].value as number);
-      }
-    }
+function generateSemiRandomTrace(rows: number, cols: number, random: () => number): Path {
+  // Cas spécial: grille 1×1
+  if (rows === 1 && cols === 1) {
+    return [{ row: 0, col: 0 }];
   }
   
-  // Si le compte est correct, ne rien faire
-  if (currentCount === numberCount) {
-    return;
-  }
-  
-  // Si trop peu de valeurs, ajouter les valeurs manquantes
-  if (currentCount < numberCount) {
-    // Trouver les cellules vides
-    const emptyCells: Coordinate[] = [];
-    for (let i = 0; i < grid.length; i++) {
-      for (let j = 0; j < grid[i].length; j++) {
-        if (grid[i][j].value === null) {
-          emptyCells.push({ row: i, col: j });
-        }
-      }
-    }
+  // Cas spécial: grilles 1×N ou N×1
+  if (rows === 1 || cols === 1) {
+    const trace: Path = [];
     
-    // Mélanger les cellules vides pour des placements aléatoires
-    shuffleArray(emptyCells);
-    // Ajouter les valeurs manquantes
-    for (let i = currentCount + 1; i <= numberCount; i++) {
-      if (emptyCells.length > 0) {
-        const cell = emptyCells.pop()!;
-        grid[cell.row][cell.col].value = i;
-      }
-    }
-  }
-  
-  // Si trop de valeurs, supprimer les valeurs excédentaires
-  if (currentCount > numberCount) {
-    // Supprimer en priorité les valeurs les plus élevées
-    const valuesToRemove = currentCount - numberCount;
-    let removed = 0;
-    
-    // Parcourir les valeurs de la plus grande à la plus petite
-    for (let value = maxValue.value; value > 0 && removed < valuesToRemove; value--) {
-      for (let i = 0; i < grid.length && removed < valuesToRemove; i++) {
-        for (let j = 0; j < grid[i].length && removed < valuesToRemove; j++) {
-          if (grid[i][j].value === value) {
-            grid[i][j].value = null;
-            removed++;
-          }
-        }
-      }
-    }
-  }
-  
-  // Vérifier que les nombres sont bien consécutifs de 1 à numberCount
-  const values = new Set<number>();
-  for (let i = 0; i < grid.length; i++) {
-    for (let j = 0; j < grid[i].length; j++) {
-      if (grid[i][j].value !== null) {
-        values.add(grid[i][j].value as number);
-      }
-    }
-  }
-  
-  if (values.size !== numberCount) {
-    // Réinitialiser complètement la grille et placer les nombres en diagonal
-    for (let i = 0; i < grid.length; i++) {
-      for (let j = 0; j < grid[i].length; j++) {
-        grid[i][j].value = null;
-      }
-    }
-    
-    for (let i = 1; i <= numberCount; i++) {
-      const row = Math.min((i-1) % grid.length, grid.length - 1);
-      const col = Math.min(Math.floor((i-1) / grid.length), grid[0].length - 1);
-      grid[row][col].value = i;
-    }
-  }
-}
-
-/**
- * Modifie une grille pour augmenter sa complexité d'un facteur spécifié
- */
-function modifyGridForHigherComplexity(grid: Grid, complexityFactor: number): void {
-  const rows = grid.length;
-  const cols = grid[0].length;
-  
-  // Trouver tous les nombres dans la grille
-  const numberPositions: Map<number, Coordinate> = new Map();
-  let maxNumber = 0;
-  
-  for (let i = 0; i < rows; i++) {
-    for (let j = 0; j < cols; j++) {
-      const value = grid[i][j].value;
-      if (value !== null) {
-        numberPositions.set(value, { row: i, col: j });
-        maxNumber = Math.max(maxNumber, value);
-      }
-    }
-  }
-  
-  // Ne pas modifier la position du premier nombre
-  for (let num = 2; num <= maxNumber; num++) {
-    const pos = numberPositions.get(num);
-    if (!pos) continue;
-    
-    // Effacer la position actuelle
-    grid[pos.row][pos.col].value = null;
-    
-    // Trouver une nouvelle position plus éloignée du nombre précédent
-    const prevPos = numberPositions.get(num - 1);
-    if (!prevPos) continue;
-    
-    // Calculer la distance actuelle
-    const currentDistance = Math.abs(pos.row - prevPos.row) + Math.abs(pos.col - prevPos.col);
-    
-    // Chercher une position plus éloignée
-    let newPos: Coordinate | null = null;
-    let maxDistance = currentDistance;
-    
-    // Essayer différentes positions
-    for (let r = 0; r < rows; r++) {
+    if (rows === 1) {
+      // Tracé horizontal
       for (let c = 0; c < cols; c++) {
-        // Vérifier si la cellule est vide
-        if (grid[r][c].value === null) {
-          const newDistance = Math.abs(r - prevPos.row) + Math.abs(c - prevPos.col);
-          // Chercher une distance plus grande mais pas trop (pour garder un chemin possible)
-          if (newDistance > maxDistance && newDistance <= currentDistance * complexityFactor) {
-            maxDistance = newDistance;
-            newPos = { row: r, col: c };
-          }
+        trace.push({ row: 0, col: c });
+      }
+    } else {
+      // Tracé vertical
+      for (let r = 0; r < rows; r++) {
+        trace.push({ row: r, col: 0 });
+      }
+    }
+    
+    return trace;
+  }
+  
+  // Pour les grilles normales
+  const visited: boolean[][] = Array(rows).fill(false).map(() => Array(cols).fill(false));
+  const trace: Path = [];
+  
+  // Définir les 3 premières coordonnées fixes
+  const startPoints: Path = [
+    { row: 0, col: 0 },
+    { row: 0, col: 1 },
+    { row: 1, col: 1 }
+  ];
+  
+  // Définir les 3 dernières coordonnées fixes (en bas à droite)
+  const endPoints: Path = [
+    { row: rows - 2, col: cols - 1 },
+    { row: rows - 1, col: cols - 1 },
+    { row: rows - 1, col: cols - 2 }
+  ];
+  
+  // Ajouter les points de départ au tracé et les marquer comme visités
+  for (const point of startPoints) {
+    // Vérifier que le point est dans les limites de la grille
+    if (point.row < rows && point.col < cols) {
+      trace.push(point);
+      visited[point.row][point.col] = true;
+    }
+  }
+  
+  // Marquer les points de fin comme réservés
+  for (const point of endPoints) {
+    if (point.row < rows && point.col < cols) {
+      visited[point.row][point.col] = true;
+    }
+  }
+  
+  // Générer le reste du tracé aléatoirement avec backtracking
+  // Partir du dernier point de départ ajouté
+  const lastStartPoint = trace[trace.length - 1];
+  
+  const directions = [
+    { row: -1, col: 0 },
+    { row: 0, col: 1 },
+    { row: 1, col: 0 },
+    { row: 0, col: -1 }
+  ];
+  
+  function backtrack(currentRow: number, currentCol: number): boolean {
+    // Calculer combien de points il nous reste à ajouter
+    const pointsNeeded = rows * cols - endPoints.length - trace.length;
+    
+    // Si on a placé tous les points nécessaires, ajouter les points de fin
+    if (pointsNeeded <= 0) {
+      // Vérifier si le dernier point du tracé est adjacent au premier point de fin
+      const lastPoint = trace[trace.length - 1];
+      const firstEndPoint = endPoints[0];
+      
+      const isAdjacent = Math.abs(lastPoint.row - firstEndPoint.row) + 
+                         Math.abs(lastPoint.col - firstEndPoint.col) === 1;
+      
+      if (isAdjacent) {
+        // Démarquer les points de fin qui avaient été réservés
+        for (const point of endPoints) {
+          visited[point.row][point.col] = false;
+        }
+        
+        // Ajouter les points de fin au tracé
+        for (const point of endPoints) {
+          trace.push(point);
+        }
+        
+        return true;
+      }
+      return false;
+    }
+    
+    // Mélanger les directions
+    const shuffledDirections = [...directions];
+    for (let i = shuffledDirections.length - 1; i > 0; i--) {
+      const j = Math.floor(random() * (i + 1));
+      [shuffledDirections[i], shuffledDirections[j]] = [shuffledDirections[j], shuffledDirections[i]];
+    }
+    
+    // Essayer chaque direction
+    for (const dir of shuffledDirections) {
+      const newRow = currentRow + dir.row;
+      const newCol = currentCol + dir.col;
+      
+      if (
+        newRow >= 0 && newRow < rows &&
+        newCol >= 0 && newCol < cols &&
+        !visited[newRow][newCol]
+      ) {
+        trace.push({ row: newRow, col: newCol });
+        visited[newRow][newCol] = true;
+        
+        if (backtrack(newRow, newCol)) {
+          return true;
+        }
+        
+        trace.pop();
+        visited[newRow][newCol] = false;
+      }
+    }
+    
+    return false;
+  }
+  
+  // Démarrer le backtracking
+  const success = backtrack(lastStartPoint.row, lastStartPoint.col);
+  
+  // Si le backtracking échoue, générer un tracé en serpentin
+  if (!success || trace.length !== rows * cols) {
+    trace.length = 0; // Réinitialiser le tracé
+    
+    // Générer un tracé en serpentin
+    let goingRight = true;
+    
+    for (let r = 0; r < rows; r++) {
+      if (goingRight) {
+        for (let c = 0; c < cols; c++) {
+          trace.push({ row: r, col: c });
+        }
+      } else {
+        for (let c = cols - 1; c >= 0; c--) {
+          trace.push({ row: r, col: c });
         }
       }
+      goingRight = !goingRight;
+    }
+  }
+  
+  // Sélectionner aléatoirement un angle de rotation (90°, 180° ou 270°)
+  const rotationAngles = [90, 180, 270];
+  const selectedAngle = rotationAngles[Math.floor(random() * rotationAngles.length)];
+  
+  // Appliquer la rotation au tracé
+  const rotatedTrace: Path = [];
+  
+  for (const point of trace) {
+    let newPoint: Coordinate;
+    
+    switch (selectedAngle) {
+      case 90:
+        // (row, col) → (col, rows-1-row)
+        newPoint = { row: point.col, col: rows - 1 - point.row };
+        break;
+      case 180:
+        // (row, col) → (rows-1-row, cols-1-col)
+        newPoint = { row: rows - 1 - point.row, col: cols - 1 - point.col };
+        break;
+      case 270:
+        // (row, col) → (cols-1-col, row)
+        newPoint = { row: cols - 1 - point.col, col: point.row };
+        break;
+      default:
+        newPoint = { ...point }; // Pas de rotation (ne devrait pas arriver)
     }
     
-    // Placer le nombre à la nouvelle position ou à l'ancienne si aucune meilleure n'est trouvée
-    if (newPos) {
-      grid[newPos.row][newPos.col].value = num;
-      numberPositions.set(num, newPos); // Mettre à jour la position
-    } else {
-      grid[pos.row][pos.col].value = num; // Remettre à l'ancienne position
-    }
+    rotatedTrace.push(newPoint);
   }
   
-  // Vérifier que la grille modifiée a toujours un chemin valide
-  if (!findValidPath(grid)) {
-    // Si la modification rend la grille invalide, restaurer une configuration valide simple
-    for (let i = 0; i < rows; i++) {
-      for (let j = 0; j < cols; j++) {
-        grid[i][j].value = null;
-      }
-    }
-    
-    // Placer les nombres en diagonale (configuration simple et valide)
-    for (let i = 1; i <= maxNumber; i++) {
-      const row = Math.min(i - 1, rows - 1);
-      const col = Math.min(i - 1, cols - 1);
-      grid[row][col].value = i;
-    }
-  }
-}
-
-/**
- * Valide une grille complète
- */
-export function validateGrid(grid: Grid, numberCount: number): ValidationResult {
-  const errors: string[] = [];
-  
-  // Vérifier que tous les nombres de 1 à numberCount sont présents
-  const numbers = new Set<number>();
-  for (let i = 0; i < grid.length; i++) {
-    for (let j = 0; j < grid[i].length; j++) {
-      const value = grid[i][j].value;
-      if (value !== null && value >= 1 && value <= numberCount) {
-        numbers.add(value);
-      }
-    }
-  }
-  
-  const hasAllNumbers = numbers.size === numberCount;
-  if (!hasAllNumbers) {
-    errors.push(`La grille ne contient pas tous les nombres de 1 à ${numberCount}`);
-  }
-  
-  // Exiger un chemin complet qui passe par toutes les cases
-  const path = findValidPath(grid, true);
-  const hasValidPath = path !== false;
-  if (!hasValidPath) {
-    errors.push('Il n\'existe pas de chemin valide passant par toutes les cases');
-  }
-  
-  return {
-    isValid: hasAllNumbers && hasValidPath,
-    hasAllNumbers,
-    hasValidPath,
-    errors: errors.length > 0 ? errors : undefined
-  };
-}
-
-/**
- * Ajuste la difficulté en fonction du jour de la semaine
- */
-export function adjustDifficultyByDay(): Difficulty {
-  const day = new Date().getDay(); // 0 = dimanche, 1 = lundi, ..., 6 = samedi
-  
-  // Difficulté progressive au fil de la semaine
-  if (day === 0) return 'HARD'; // Dimanche
-  if (day <= 2) return 'EASY'; // Lundi, Mardi
-  if (day <= 5) return 'MEDIUM'; // Mercredi, Jeudi, Vendredi
-  return 'HARD'; // Samedi
-}
-
-/**
- * Calcule la complexité d'une grille
- */
-export function calculateGridComplexity(grid: Grid): number {
-  // Trouver les positions des nombres
-  const numberPositions = new Map<number, Coordinate>();
-  let maxNumber = 0;
-  
-  for (let i = 0; i < grid.length; i++) {
-    for (let j = 0; j < grid[i].length; j++) {
-      const value = grid[i][j].value;
-      if (value !== null) {
-        numberPositions.set(value, { row: i, col: j });
-        maxNumber = Math.max(maxNumber, value);
-      }
-    }
-  }
-  
-  if (maxNumber <= 1) return 0.1; // Éviter de retourner 0 pour faciliter les comparaisons
-  
-  // Calculer la distance moyenne entre les nombres consécutifs
-  let totalDistance = 0;
-  let connections = 0;
-  
-  for (let i = 1; i < maxNumber; i++) {
-    const start = numberPositions.get(i);
-    const end = numberPositions.get(i + 1);
-    
-    if (start && end) {
-      // Distance de Manhattan
-      const distance = Math.abs(start.row - end.row) + Math.abs(start.col - end.col);
-      totalDistance += distance;
-      connections++;
-    }
-  }
-  
-  // Calculer la complexité normalisée (0.1-1)
-  if (connections === 0) return 0.1;
-  
-  const avgDistance = totalDistance / connections;
-  const maxPossibleDistance = grid.length + grid[0].length - 2;
-  
-  // Normaliser entre 0.1 et 1 (éviter 0 pour les tests de comparaison)
-  return Math.max(0.1, Math.min(avgDistance / maxPossibleDistance, 1));
-}
-
-/**
- * Mélange un tableau en place (algorithme de Fisher-Yates)
- */
-function shuffleArray<T>(array: T[]): void {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
+  return rotatedTrace;
 }

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './GameGrid.css';
-import { Cell, Grid, Path, PuzzleStatus } from '../types/gameTypes';
+import { Cell, Difficulty, Grid, Path, PuzzleStatus } from '../types/gameTypes';
 import { PuzzleCalendar } from './PuzzleCalendar';
-import { findValidPath, generateGrid } from '../utils/gridGenerator';
+import { findValidPath } from '../utils/gridGenerator';
 
 interface GameGridProps {
   size: number;
@@ -48,6 +48,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
   const [hoverCell, setHoverCell] = useState<{row: number, col: number} | null>(null);
   const [lastMousePosition, setLastMousePosition] = useState<{x: number, y: number} | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const [gridSolution, setGridSolution] = useState<Path | null>(null);
 
   useEffect(() => {
     let intervalId: number;
@@ -83,12 +84,26 @@ export const GameGrid: React.FC<GameGridProps> = ({
     // Créer une nouvelle instance du Worker
     const worker = new Worker(new URL('../workers/gridWorker.ts', import.meta.url), { type: 'module' });
     
+    // Déterminer la difficulté en fonction du jour de la semaine sélectionné
+    const getDifficultyForDate = (date: Date): Difficulty => {
+      const day = date.getDay(); // 0 = dimanche, 1 = lundi, ..., 6 = samedi
+      
+      if (day === 0) return 'HARD'; // Dimanche
+      if (day <= 2) return 'EASY'; // Lundi, Mardi
+      if (day <= 5) return 'MEDIUM'; // Mercredi, Jeudi, Vendredi
+      return 'HARD'; // Samedi
+    };
+    
+    // Calculer la difficulté basée sur la date sélectionnée
+    const difficulty = getDifficultyForDate(selectedDate);
+    
     // Gérer les messages du Worker
     worker.onmessage = (e) => {
-      const { type, grid, error } = e.data;
+      const { type, grid, trace, error } = e.data;
       
       if (type === 'success') {
         setGrid(grid);
+        setGridSolution(trace);
         setPath([]);
         setCurrentNumber(1);
         setIsTimerActive(false);
@@ -106,7 +121,7 @@ export const GameGrid: React.FC<GameGridProps> = ({
     worker.postMessage({
       size,
       numberCount,
-      difficulty: 'MEDIUM',
+      difficulty, // Utiliser la difficulté calculée selon la date
       seed: selectedDate.getTime()
     });
     
@@ -374,42 +389,33 @@ export const GameGrid: React.FC<GameGridProps> = ({
   }, [isDragging]);
 
   const handleShowSolution = () => {
-    // Créer une grille correctement initialisée
-    const newGrid: Grid = Array(size).fill(null).map((_, rowIndex) => 
-      Array(size).fill(null).map((_, colIndex) => ({
-        row: rowIndex,
-        col: colIndex,
-        value: null,
-        isPartOfPath: false,
-        isSelected: false
-      }))
-    );
-
-    // Remplir la grille avec les valeurs des cellules
-    grid.forEach((row, rowIndex) => 
-      row.forEach((cell, colIndex) => {
-        newGrid[rowIndex][colIndex].value = cell.value;
-      })
-    );
-
-    // Trouver le chemin valide
-    const solution = findValidPath(newGrid, true);
-    
-    if (solution && Array.isArray(solution)) {
-      setPath(solution);
+    // Utiliser directement le tracé stocké
+    if (gridSolution) {
+      setPath(gridSolution);
       setShowingSolution(true);
-      setCurrentNumber(grid.length); // Marquer comme complet
+      setCurrentNumber(numberCount);
       
-      // Vérifier si le puzzle a déjà été complété sans aide
       const dateString = selectedDate.toISOString().split('T')[0];
       const currentStatus = puzzleStatuses[dateString];
       if (currentStatus !== 'COMPLETED') {
-        onPuzzleComplete(selectedDate, true); // Marquer comme résolu avec aide seulement si pas déjà complété
+        onPuzzleComplete(selectedDate, true);
       }
       
-      setIsTimerActive(false); // Arrêter le timer
+      setIsTimerActive(false);
     } else {
-      console.error("Impossible de trouver une solution valide");
+      // Fallback si le tracé n'est pas disponible (ce qui ne devrait pas arriver)
+      console.error("Aucun tracé disponible pour la solution");
+      
+      // On peut essayer de recalculer un chemin
+      const solution = findValidPath(grid, true);
+      if (solution && Array.isArray(solution)) {
+        setPath(solution);
+        setShowingSolution(true);
+        setCurrentNumber(numberCount);
+        setIsTimerActive(false);
+      } else {
+        console.error("Impossible de trouver une solution valide");
+      }
     }
   };
 
@@ -612,35 +618,3 @@ export const GameGrid: React.FC<GameGridProps> = ({
   );
 };
 
-// Nouvelle fonction pour rendre un connecteur visuel temporaire
-const renderTemporaryConnector = (startCell: {row: number, col: number}, endCell: {row: number, col: number}) => {
-  // Si les cellules ne sont pas alignées, ne pas afficher de connecteur
-  if (startCell.row !== endCell.row && startCell.col !== endCell.col) return null;
-  
-  // Calculer la position et les dimensions du connecteur
-  let style: React.CSSProperties = {};
-  
-  if (startCell.row === endCell.row) {
-    // Connecteur horizontal
-    const left = Math.min(startCell.col, endCell.col) * 100 + 50;
-    const width = Math.abs(endCell.col - startCell.col) * 100;
-    style = {
-      left: `${left}%`,
-      top: '30%',
-      width: `${width}%`,
-      height: '40%'
-    };
-  } else {
-    // Connecteur vertical
-    const top = Math.min(startCell.row, endCell.row) * 100 + 50;
-    const height = Math.abs(endCell.row - startCell.row) * 100;
-    style = {
-      top: `${top}%`,
-      left: '30%',
-      height: `${height}%`,
-      width: '40%'
-    };
-  }
-  
-  return <div className="last-segment-indicator" style={style} />;
-};

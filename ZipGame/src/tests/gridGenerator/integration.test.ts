@@ -26,9 +26,9 @@ describe('Génération et validation complète de la grille', () => {
     expect(JSON.stringify(grid1)).not.toBe(JSON.stringify(grid3));
     
     // Vérifier que toutes les grilles sont valides
-    expect(validateGrid(grid1, numberCount).isValid).toBe(true);
-    expect(validateGrid(grid2, numberCount).isValid).toBe(true);
-    expect(validateGrid(grid3, numberCount).isValid).toBe(true);
+    expect(validateGrid(grid1.grid, numberCount).isValid).toBe(true);
+    expect(validateGrid(grid2.grid, numberCount).isValid).toBe(true);
+    expect(validateGrid(grid3.grid, numberCount).isValid).toBe(true);
   });
   
   it('devrait générer des grilles valides pour différentes dates', () => {
@@ -47,15 +47,15 @@ describe('Génération et validation complète de la grille', () => {
       const grid = generateGrid(rows, cols, numberCount, difficulty, date);
       
       // Vérifier les dimensions
-      expect(grid.length).toBe(rows);
-      expect(grid[0].length).toBe(cols);
+      expect(grid.grid.length).toBe(rows);
+      expect(grid.grid[0].length).toBe(cols);
       
       // Vérifier que les nombres sont présents
       const numbers = new Set<number>();
       for (let i = 0; i < rows; i++) {
         for (let j = 0; j < cols; j++) {
-          if (grid[i][j].value !== null) {
-            numbers.add(grid[i][j].value as number);
+          if (grid.grid[i][j].value !== null) {
+            numbers.add(grid.grid[i][j].value as number);
           }
         }
       }
@@ -66,7 +66,7 @@ describe('Génération et validation complète de la grille', () => {
       }
       
       // Vérifier que la grille est valide
-      const validationResult = validateGrid(grid, numberCount);
+      const validationResult = validateGrid(grid.grid, numberCount);
       expect(validationResult.isValid).toBe(true);
     });
   });
@@ -84,10 +84,10 @@ describe('Génération et validation complète de la grille', () => {
     testCases.forEach(({ rows, cols, numberCount }) => {
       const grid = generateGrid(rows, cols, numberCount, 'MEDIUM', testDate);
       
-      expect(grid.length).toBe(rows);
-      expect(grid[0].length).toBe(cols);
+      expect(grid.grid.length).toBe(rows);
+      expect(grid.grid[0].length).toBe(cols);
       
-      const validationResult = validateGrid(grid, numberCount);
+      const validationResult = validateGrid(grid.grid, numberCount);
       expect(validationResult.isValid).toBe(true);
     });
   });
@@ -99,10 +99,10 @@ describe('Génération et validation complète de la grille', () => {
     const grid = (() => {
       const g = generateGrid(5, 5, 8, 'MEDIUM', testDate);
       // Supprimer intentionnellement un nombre
-      for (let i = 0; i < g.length; i++) {
-        for (let j = 0; j < g[i].length; j++) {
-          if (g[i][j].value === 4) {
-            g[i][j].value = null;
+      for (let i = 0; i < g.grid.length; i++) {
+        for (let j = 0; j < g.grid[i].length; j++) {
+          if (g.grid[i][j].value === 4) {
+            g.grid[i][j].value = null;
             return g;
           }
         }
@@ -110,7 +110,7 @@ describe('Génération et validation complète de la grille', () => {
       return g;
     })();
     
-    const validationResult = validateGrid(grid, 8);
+    const validationResult = validateGrid(grid.grid, 8);
     expect(validationResult.isValid).toBe(false);
     expect(validationResult.hasAllNumbers).toBe(false);
   });

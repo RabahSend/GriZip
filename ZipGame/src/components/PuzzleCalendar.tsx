@@ -87,6 +87,7 @@ export const PuzzleCalendar: React.FC<PuzzleCalendarProps> = ({
       <Calendar
         onChange={handleDateChange}
         value={selectedDate}
+        defaultActiveStartDate={new Date()}
         tileContent={tileContent}
         tileClassName={tileClassName}
         minDetail="month"
