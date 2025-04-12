@@ -75,6 +75,7 @@ function App() {
   }, []);
   
   const handleSelectDay = (date: Date) => {
+    console.log("handleSelectDay", date);
     setSelectedDate(date);
     setResetPath(true);
     // Réinitialiser resetPath après un court délai
@@ -82,7 +83,12 @@ function App() {
   };
 
   const handlePuzzleComplete = (date: Date, usedHelp: boolean) => {
-    const dateString = date.toISOString().split('T')[0];
+    // Normaliser la date en utilisant les composantes locales, pas UTC
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    
     setPuzzleStatuses(prev => ({
       ...prev,
       [dateString]: usedHelp ? 'SOLVED_WITH_HELP' : 'COMPLETED'
