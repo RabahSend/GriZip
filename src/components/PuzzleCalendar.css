@@ -181,4 +181,53 @@
 .legend-text strong {
   color: #374151;
   font-weight: 600;
+}
+
+/* Media queries pour les écrans mobiles */
+@media screen and (max-width: 768px) {
+  .react-calendar__tile {
+    height: 36px !important;
+    padding: 0 !important;
+  }
+
+  .puzzle-number {
+    font-size: 0.5rem;
+    top: 1px;
+    right: 1px;
+  }
+
+  .difficulty-indicator {
+    width: 4px;
+    height: 4px;
+    bottom: 1px;
+  }
+  
+  .react-calendar__navigation button {
+    padding: 5px !important;
+    font-size: 0.9rem !important;
+  }
+}
+
+/* Pour les très petits écrans */
+@media screen and (max-width: 480px) {
+  .calendar-wrapper {
+    padding: 8px;
+    margin: 10px 0;
+  }
+  
+  .react-calendar__tile {
+    height: 32px !important;
+    font-size: 0.8rem !important;
+  }
+  
+  .legend-items {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  
+  .legend-item {
+    width: 48%;
+    margin-bottom: 5px;
+  }
 } 

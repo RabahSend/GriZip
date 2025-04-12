@@ -889,6 +889,17 @@ export const GameGrid: React.FC<GameGridProps> = ({
                 const newSize = parseInt(e.target.value);
                 onSizeChange?.(newSize);
               }}
+              onTouchStart={(e) => {
+                e.stopPropagation();
+                // Forcer un délai avant l'ouverture pour contourner certains bugs mobiles
+                setTimeout(() => {
+                  // Aucune action, juste pour forcer un rafraîchissement
+                }, 10);
+              }}
+              onClick={(e) => {
+                // S'assurer que l'événement est traité immédiatement
+                e.stopPropagation();
+              }}
             >
               <option value="6">6x6</option>
               <option value="10">10x10</option>
