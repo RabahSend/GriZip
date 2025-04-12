@@ -65,12 +65,19 @@ export const PuzzleCalendar: React.FC<PuzzleCalendarProps> = ({
     if (isFuture) classes.push('future');
     if (isSelected) classes.push('selected');
 
+    // Normaliser la date pour éviter les problèmes de fuseau horaire
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    
     // Ajouter la classe en fonction du statut du puzzle
-    const status = puzzleStatuses[date.toISOString().split('T')[0]];
+    const status = puzzleStatuses[dateString];
     if (status === 'COMPLETED') {
       classes.push('completed');
     } else if (status === 'SOLVED_WITH_HELP') {
-      classes.push('solved-with-help');
+      classes.push('solved-with-help');    
+
     }
 
     return classes.join(' ');

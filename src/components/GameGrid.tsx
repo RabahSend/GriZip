@@ -514,7 +514,12 @@ export const GameGrid: React.FC<GameGridProps> = ({
       setShowingSolution(true);
       setCurrentNumber(numberCount);
       
-      const dateString = selectedDate.toISOString().split('T')[0];
+      // Au lieu d'utiliser toISOString qui convertit en UTC, normaliser la date localement
+      const year = selectedDate.getFullYear();
+      const month = (selectedDate.getMonth() + 1).toString().padStart(2, '0');
+      const day = selectedDate.getDate().toString().padStart(2, '0');
+      const dateString = `${year}-${month}-${day}`;
+      
       const currentStatus = puzzleStatuses[dateString];
       if (currentStatus !== 'COMPLETED') {
         onPuzzleComplete(selectedDate, true);
