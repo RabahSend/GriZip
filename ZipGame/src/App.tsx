@@ -7,6 +7,7 @@ import './App.css'
 // Clés pour le stockage local
 const LAST_SELECTED_DATE_KEY = 'zipGameLastSelectedDate';
 const PUZZLE_STATUSES_KEY = 'zipGamePuzzleStatuses';
+const GRID_CACHE_PREFIX = 'zipGame_cachedGrid_';
 
 function App() {
   const [gridSize, setGridSize] = useState(6);
@@ -40,6 +41,39 @@ function App() {
   useEffect(() => {
     localStorage.setItem(PUZZLE_STATUSES_KEY, JSON.stringify(puzzleStatuses));
   }, [puzzleStatuses]);
+  
+  // Nettoyer les anciennes grilles en cache (une fois par session)
+  useEffect(() => {
+    const cleanupCachedGrids = () => {
+      const maxAgeInDays = 30; // Conserver les grilles pour 30 jours maximum
+      const currentTime = Date.now();
+      const maxAgeInMs = maxAgeInDays * 24 * 60 * 60 * 1000;
+      
+      // Parcourir tous les éléments du localStorage
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(GRID_CACHE_PREFIX)) {
+          try {
+            // Extraire la date de la clé
+            const dateMatch = key.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+            if (dateMatch) {
+              const [, year, month, day] = dateMatch;
+              const gridDate = new Date(parseInt(year), parseInt(month), parseInt(day));
+              
+              // Supprimer les grilles plus anciennes que maxAgeInDays
+              if (currentTime - gridDate.getTime() > maxAgeInMs) {
+                localStorage.removeItem(key);
+              }
+            }
+          } catch (e) {
+            console.warn("Erreur lors du nettoyage du cache:", e);
+          }
+        }
+      }
+    };
+    
+    cleanupCachedGrids();
+  }, []);
   
   const handleSelectDay = (date: Date) => {
     setSelectedDate(date);
