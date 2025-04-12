@@ -77,17 +77,37 @@ function App() {
 
   return (
     <div className="app">
-      <GameGrid
-        size={gridSize}
-        numberCount={getNumberCount(gridSize)}
-        selectedDate={selectedDate}
-        onSelectDay={handleSelectDay}
-        onUndo={handleUndo}
-        onSizeChange={handleSizeChange}
-        resetPath={resetPath}
-        onPuzzleComplete={handlePuzzleComplete}
-        puzzleStatuses={puzzleStatuses}
-      />
+      <header className="app-header">
+        <div className="header-content">
+          <h1>ZipGame</h1>
+          <p>Daily Puzzle Game</p>
+        </div>
+      </header>
+      
+      <main className="main-content">
+        <GameGrid
+          size={gridSize}
+          numberCount={getNumberCount(gridSize)}
+          selectedDate={selectedDate}
+          onSelectDay={handleSelectDay}
+          onUndo={handleUndo}
+          onSizeChange={handleSizeChange}
+          resetPath={resetPath}
+          onPuzzleComplete={handlePuzzleComplete}
+          puzzleStatuses={puzzleStatuses}
+        />
+      </main>
+
+      <footer className="app-footer">
+        <div className="footer-content">
+          <div className="footer-disclaimer">
+            <p>This site is not affiliated with LinkedIn®</p>
+          </div>
+          <div className="footer-credits">
+            <p>Developed by <a href="https://on-dev.fr" target="_blank" rel="noopener noreferrer">ON'Dev</a></p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -11,9 +11,9 @@ interface PuzzleCalendarProps {
 }
 
 const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  'EASY': 'Lundi, Mardi',
-  'MEDIUM': 'Mercredi à Vendredi',
-  'HARD': 'Samedi, Dimanche'
+  'EASY': 'Monday, Tuesday',
+  'MEDIUM': 'Wednesday to Friday',
+  'HARD': 'Saturday, Sunday'
 };
 
 export const PuzzleCalendar: React.FC<PuzzleCalendarProps> = ({ 
@@ -21,16 +21,16 @@ export const PuzzleCalendar: React.FC<PuzzleCalendarProps> = ({
   selectedDate,
   puzzleStatuses = {} 
 }) => {
-  const startDate = new Date(2024, 2, 2); // 2 mars 2024
+  const startDate = new Date(2024, 2, 2); // March 2nd, 2024
   const today = new Date();
 
   const getDifficultyForDate = (date: Date): Difficulty => {
-    const day = date.getDay(); // 0 = dimanche, 1 = lundi, ..., 6 = samedi
+    const day = date.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
     
-    if (day === 0) return 'HARD'; // Dimanche
-    if (day <= 2) return 'EASY'; // Lundi, Mardi
-    if (day <= 5) return 'MEDIUM'; // Mercredi, Jeudi, Vendredi
-    return 'HARD'; // Samedi
+    if (day === 0) return 'HARD'; // Sunday
+    if (day <= 2) return 'EASY'; // Monday, Tuesday
+    if (day <= 5) return 'MEDIUM'; // Wednesday to Friday
+    return 'HARD'; // Saturday
   };
 
   const tileContent = ({ date, view }: { date: Date; view: string }) => {
@@ -93,9 +93,16 @@ export const PuzzleCalendar: React.FC<PuzzleCalendarProps> = ({
         minDetail="month"
         maxDate={today}
         minDate={startDate}
+        locale="en-US"
+        formatShortWeekday={(locale, date) => 
+          date.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 3)
+        }
+        formatMonthYear={(locale, date) => 
+          date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })
+        }
       />
       <div className="difficulty-legend">
-        <h3>Difficulté par jour</h3>
+        <h3>Daily Difficulty</h3>
         <div className="legend-items">
           {(Object.entries(DIFFICULTY_LABELS) as [Difficulty, string][]).map(([difficulty, days]) => (
             <div key={difficulty} className="legend-item">

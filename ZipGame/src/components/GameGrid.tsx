@@ -741,12 +741,16 @@ export const GameGrid: React.FC<GameGridProps> = ({
     >
       {/* Header */}
       <div className="game-header">
-        <h1>Puzzle du {selectedDate.toLocaleDateString()}</h1>
+        <h1>Puzzle of {selectedDate.toLocaleDateString('en-US', { 
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })}</h1>
         <div className="header-right">
           <button 
             className="info-button" 
             onClick={toggleInfoDisplay}
-            aria-label="Instructions du jeu"
+            aria-label="Game Instructions"
           >
             <span className="info-icon">i</span>
           </button>
@@ -980,7 +984,11 @@ export const GameGrid: React.FC<GameGridProps> = ({
         <div className="success-popup">
           <div className="success-content">
             <h2>Congratulations!</h2>
-            <p>You completed the puzzle of {selectedDate.toLocaleDateString()} in {formatTime(elapsedTime)}!</p>
+            <p>You completed the puzzle of {selectedDate.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            })} in {formatTime(elapsedTime)}!</p>
             <button 
               className="button button-primary"
               onClick={() => setShowSuccess(false)}
