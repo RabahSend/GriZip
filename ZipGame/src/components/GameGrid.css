@@ -3,6 +3,15 @@
   max-width: 600px;
   margin: 0 auto;
   padding: 20px;
+  outline: none !important;
+}
+
+.game-container:focus {
+  outline: none !important;
+}
+
+.game-container:focus-visible {
+  outline: none !important;
 }
 
 .game-header {
@@ -54,6 +63,15 @@
   -moz-user-select: none;
   -ms-user-select: none;
   transition: background-color 0.2s ease;
+  outline: none !important;
+}
+
+.grid-cell:focus {
+  outline: none !important;
+}
+
+.grid-cell:focus-visible {
+  outline: none !important;
 }
 
 .grid-cell.in-path {
