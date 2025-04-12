@@ -4,6 +4,8 @@
   margin: 0 auto;
   padding: 20px;
   outline: none !important;
+  touch-action: pan-y pinch-zoom;
+  overscroll-behavior: none;
 }
 
 .game-container:focus {
@@ -50,6 +52,11 @@
   width: 100%;
   max-width: 600px;
   margin: 0 auto;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior: none;
 }
 
 .grid-cell {

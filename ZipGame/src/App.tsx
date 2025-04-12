@@ -113,8 +113,8 @@ function App() {
     <div className="app">
       <header className="app-header">
         <div className="header-content">
-          <h1>ZipGame</h1>
-          <p>Daily Puzzle Game</p>
+          <h1>Grizip</h1>
+          <p>A zip game - Daily Puzzle Game</p>
         </div>
       </header>
       
