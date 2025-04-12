@@ -11,9 +11,6 @@ const DIRECTIONS = Object.freeze([
   { row: 0, col: -1 }  // gauche
 ]);
 
-// Utiliser un tableau réutilisable pour les rotations
-const ROTATION_ANGLES = Object.freeze([90, 180, 270]);
-
 /**
  * Vérifie si une cellule est dans les limites de la grille
  */
@@ -1272,42 +1269,4 @@ function handleSpecialGridCases(rows: number, cols: number): Path | null {
   }
   
   return null; // Pas de cas spécial
-}
-
-// Fonction de rotation optimisée qui vérifie les dimensions
-function rotateTrace(trace: Path, angle: number, rows: number, cols: number): Path {
-  // Si l'angle est 0 ou 360, retourner le trace original sans copie
-  if (angle % 360 === 0) return trace;
-  
-  const rotatedTrace: Path = [];
-  // Pré-allouer la taille pour éviter les redimensionnements
-  rotatedTrace.length = trace.length;
-  
-  // Pré-calcul des dimensions pour les rotations à 90° et 270°
-  const needsDimensionSwap = angle % 180 !== 0;
-  const effectiveRows = needsDimensionSwap ? cols : rows;
-  const effectiveCols = needsDimensionSwap ? rows : cols;
-  
-  for (let i = 0; i < trace.length; i++) {
-    const point = trace[i];
-    let newPoint: Coordinate;
-    
-    switch (angle % 360) {
-      case 90:
-        newPoint = { row: point.col, col: effectiveRows - 1 - point.row };
-        break;
-      case 180:
-        newPoint = { row: effectiveRows - 1 - point.row, col: effectiveCols - 1 - point.col };
-        break;
-      case 270:
-        newPoint = { row: effectiveCols - 1 - point.col, col: point.row };
-        break;
-      default:
-        newPoint = { ...point };
-    }
-    
-    rotatedTrace[i] = newPoint;
-  }
-  
-  return rotatedTrace;
 }

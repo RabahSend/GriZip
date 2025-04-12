@@ -1,4 +1,4 @@
-import { Grid, Difficulty, Path } from '../types/gameTypes';
+import { Difficulty } from '../types/gameTypes';
 import { generateGrid } from '../utils/gridGenerator';
 
 // Écouter les messages du thread principal

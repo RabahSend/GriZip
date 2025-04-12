@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { GameGrid } from './components/GameGrid'
-import { adjustDifficultyByDay } from './utils/gridGenerator'
 import type { PuzzleStatus } from './types/gameTypes'
 import './App.css'
 
