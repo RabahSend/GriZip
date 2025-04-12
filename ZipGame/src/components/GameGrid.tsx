@@ -85,7 +85,40 @@ export const GameGrid: React.FC<GameGridProps> = ({
     setIsLoading(true);
     setShowingSolution(false);
     
-    // Créer une nouvelle instance du Worker
+    // Créer une clé unique pour chaque combinaison de date/taille/nombre
+    const createGridCacheKey = (date: Date, gridSize: number, numCount: number): string => {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const day = date.getDate();
+      return `zipGame_cachedGrid_${year}-${month}-${day}_${gridSize}x${gridSize}_${numCount}`;
+    };
+    
+    const cacheKey = createGridCacheKey(selectedDate, size, numberCount);
+    
+    // Vérifier si une grille est déjà en cache pour cette date et ces paramètres
+    const cachedGridData = localStorage.getItem(cacheKey);
+    
+    if (cachedGridData) {
+      try {
+        // Si la grille existe en cache, l'utiliser directement
+        const { grid, trace } = JSON.parse(cachedGridData);
+        setGrid(grid);
+        setGridSolution(trace);
+        setPath([]);
+        setCurrentNumber(1);
+        setIsTimerActive(false);
+        setElapsedTime(0);
+        setShowSuccess(false);
+        setShowingSolution(false);
+        setIsLoading(false);
+        return; // Sortir de l'effet car la grille a été chargée du cache
+      } catch (e) {
+        console.error("Erreur lors du chargement de la grille en cache:", e);
+        // Continuer pour générer une nouvelle grille en cas d'erreur
+      }
+    }
+    
+    // Si pas de cache ou erreur de chargement, générer une nouvelle grille
     const worker = new Worker(new URL('../workers/gridWorker.ts', import.meta.url), { type: 'module' });
     
     // Déterminer la difficulté en fonction du jour de la semaine sélectionné
@@ -101,11 +134,30 @@ export const GameGrid: React.FC<GameGridProps> = ({
     // Calculer la difficulté basée sur la date sélectionnée
     const difficulty = getDifficultyForDate(selectedDate);
     
+    // Créer une graine constante pour le même jour
+    const createDailyConstantSeed = (date: Date): number => {
+      const year = date.getFullYear();
+      const month = date.getMonth();
+      const day = date.getDate();
+      const normalizedDate = new Date(year, month, day, 0, 0, 0, 0);
+      return normalizedDate.getTime();
+    };
+    
+    const dailySeed = createDailyConstantSeed(selectedDate);
+    
     // Gérer les messages du Worker
     worker.onmessage = (e) => {
       const { type, grid, trace, error } = e.data;
       
       if (type === 'success') {
+        // Sauvegarder la grille générée dans le localStorage pour une réutilisation future
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify({ grid, trace }));
+        } catch (e) {
+          console.warn("Impossible de mettre en cache la grille:", e);
+          // Continuer même si le cache échoue
+        }
+        
         setGrid(grid);
         setGridSolution(trace);
         setPath([]);
@@ -125,8 +177,8 @@ export const GameGrid: React.FC<GameGridProps> = ({
     worker.postMessage({
       size,
       numberCount,
-      difficulty, // Utiliser la difficulté calculée selon la date
-      seed: selectedDate.getTime()
+      difficulty,
+      seed: dailySeed
     });
     
     // Nettoyer le Worker quand le composant est démonté
