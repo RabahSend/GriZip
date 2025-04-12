@@ -1,56 +1,54 @@
-# ZipGame
+# React + TypeScript + Vite
 
-## Introduction
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-ZipGame est un jeu de puzzle sur grille où l'objectif est de tracer un chemin reliant des nombres consécutifs. Inspiré des puzzles de type "connect-the-dots", le jeu propose différents niveaux de difficulté et peut être configuré pour varier automatiquement la complexité en fonction du jour de la semaine.
+Currently, two official plugins are available:
 
-## Concept du jeu
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-Le joueur se voit présenter une grille contenant des nombres de 1 à N. L'objectif est de tracer un chemin continu qui relie ces nombres dans l'ordre croissant. La difficulté varie selon la disposition des nombres et la taille de la grille.
+## Expanding the ESLint configuration
 
-## Fonctionnalités implémentées
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-1. **createEmptyGrid**: Crée une grille vide aux dimensions spécifiées.
-   - Prend en paramètres le nombre de lignes et de colonnes
-   - Initialise chaque cellule avec des valeurs par défaut (value: null, isPartOfPath: false, etc.)
-   - Retourne une structure de données Grid prête à être utilisée
+```js
+export default tseslint.config({
+  extends: [
+    // Remove ...tseslint.configs.recommended and replace with this
+    ...tseslint.configs.recommendedTypeChecked,
+    // Alternatively, use this for stricter rules
+    ...tseslint.configs.strictTypeChecked,
+    // Optionally, add this for stylistic rules
+    ...tseslint.configs.stylisticTypeChecked,
+  ],
+  languageOptions: {
+    // other options...
+    parserOptions: {
+      project: ['./tsconfig.node.json', './tsconfig.app.json'],
+      tsconfigRootDir: import.meta.dirname,
+    },
+  },
+})
+```
 
-2. **placeNumbersInGrid**: Place des nombres consécutifs (1 à N) dans la grille.
-   - Assure qu'il existe au moins un chemin valide entre les nombres consécutifs
-   - Utilise un algorithme qui tente de placer les nombres à une distance raisonnable
-   - Effectue plusieurs tentatives pour trouver une disposition valide
-   - Inclut un mécanisme de fallback pour garantir qu'une grille est toujours générée
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-3. **findValidPath**: Vérifie l'existence d'un chemin valide entre tous les nombres consécutifs.
-   - Accepte un paramètre optionnel permettant de générer un chemin complet
-   - Vérifie que la distance entre les nombres consécutifs est appropriée
-   - Retourne soit un booléen indiquant si un chemin existe, soit le chemin lui-même
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
-4. **generateCompletePath**: Génère un chemin complet qui passe par toutes les cellules de la grille.
-   - Utilise un algorithme de parcours en serpentin pour couvrir toute la grille
-   - Crée un chemin qui alterne entre gauche-droite et droite-gauche à chaque ligne
-   - Utilisé comme solution de secours quand un chemin spécifique ne peut être trouvé
-
-5. **generateGrid**: Génère une grille complète adaptée au niveau de difficulté demandé.
-   - Produit plusieurs grilles candidates avec différentes dispositions
-   - Calcule la complexité de chaque grille pour sélectionner celle qui correspond à la difficulté
-   - Propose des variantes (zigzag, coin, diagonale) pour enrichir l'expérience de jeu
-   - Adapte intelligemment la complexité selon le niveau demandé (EASY, MEDIUM, HARD)
-
-6. **validateGrid**: Valide qu'une grille respecte toutes les contraintes du jeu.
-   - Vérifie la présence de tous les nombres requis (1 à N)
-   - Confirme l'existence d'un chemin valide entre les nombres consécutifs
-   - Retourne un objet détaillé avec le statut de validation et les erreurs éventuelles
-
-7. **adjustDifficultyByDay**: Ajuste automatiquement la difficulté en fonction du jour de la semaine.
-   - Propose une progression: facile en début de semaine, difficile le week-end
-   - Permet une expérience de jeu variée sans intervention manuelle
-
-8. **calculateGridComplexity**: Évalue la complexité d'une grille sur une échelle normalisée (0.1-1).
-   - Analyse la distance moyenne entre les nombres consécutifs
-   - Prend en compte la taille de la grille pour normaliser le résultat
-   - Permet de classer objectivement les grilles par niveau de difficulté
-
-9. **shuffleArray**: Fonction utilitaire qui mélange aléatoirement les éléments d'un tableau.
-   - Utilise l'algorithme Fisher-Yates pour un mélange statistiquement équilibré
-   - Garantit que les positions des nombres dans la grille sont véritablement aléatoires
+export default tseslint.config({
+  plugins: {
+    // Add the react-x and react-dom plugins
+    'react-x': reactX,
+    'react-dom': reactDom,
+  },
+  rules: {
+    // other rules...
+    // Enable its recommended typescript rules
+    ...reactX.configs['recommended-typescript'].rules,
+    ...reactDom.configs.recommended.rules,
+  },
+})
+```
