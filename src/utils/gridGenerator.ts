@@ -11,6 +11,9 @@ const DIRECTIONS = Object.freeze([
   { row: 0, col: -1 }  // gauche
 ]);
 
+// Ajouter cette structure de cache en haut du fichier après les imports
+const gridCache: Map<string, { grid: Grid, trace: Path }> = new Map();
+
 /**
  * Vérifie si une cellule est dans les limites de la grille
  */
@@ -410,14 +413,28 @@ function findPathBetweenCells(grid: Grid, start: Coordinate, end: Coordinate): b
 /**
  * Génère une grille complète avec un tracé valide et des nombres placés dessus
  */
-export function generateGrid(rows: number, cols: number, numberCount: number, difficulty: Difficulty, seed?: Date): { grid: Grid, trace: Path } {
-  // Créer un générateur de nombres aléatoires avec seed si fourni
-  const random = createRandomGenerator(seed);
+export function generateGrid(rows: number, cols: number, numberCount: number, difficulty: Difficulty, seed?: number | Date): { grid: Grid, trace: Path } {
+  // Créer une clé de cache unique basée sur tous les paramètres
+  const normalizedSeed = seed instanceof Date 
+    ? new Date(seed.getFullYear(), seed.getMonth(), seed.getDate(), 0, 0, 0, 0).getTime()
+    : seed;
   
-  // Créer une grille vide
+  const cacheKey = `${rows}-${cols}-${numberCount}-${difficulty}-${normalizedSeed}`;
+  
+  // Vérifier si cette configuration existe déjà dans le cache
+  if (gridCache.has(cacheKey)) {
+    // Retourner une copie profonde pour éviter les mutations
+    const cachedGrid = gridCache.get(cacheKey)!;
+    return {
+      grid: JSON.parse(JSON.stringify(cachedGrid.grid)),
+      trace: JSON.parse(JSON.stringify(cachedGrid.trace))
+    };
+  }
+  
+  // Si non, générer une nouvelle grille
+  const random = createRandomGenerator(normalizedSeed);
   const grid = createEmptyGrid(rows, cols);
   
-  // Générer un tracé complet selon la difficulté
   let trace: Path;
   
   switch(difficulty) {
@@ -433,13 +450,16 @@ export function generateGrid(rows: number, cols: number, numberCount: number, di
       break;
   }
   
-  // Stocker le tracé pour la validation ultérieure
   lastGeneratedTrace = trace;
   
-  // Placer les nombres sur le tracé
   placeNumbersOnTraceGuaranteedValid(grid, trace, numberCount, difficulty, random);
   
-  // Retourner à la fois la grille et le tracé
+  // Stocker la grille dans le cache
+  gridCache.set(cacheKey, {
+    grid: JSON.parse(JSON.stringify(grid)),
+    trace: JSON.parse(JSON.stringify(trace))
+  });
+  
   return { grid, trace };
 }
 
@@ -540,15 +560,40 @@ function placeNumbersOnTraceGuaranteedValid(grid: Grid, trace: Path, numberCount
 }
 
 /**
- * Crée un générateur de nombres aléatoires basé sur un seed
+ * Crée un générateur de nombres pseudo-aléatoires déterministe si une graine est fournie
  */
-function createRandomGenerator(seed?: Date): () => number {
-  let seedValue = seed ? seed.getTime() : Date.now();
+function createRandomGenerator(seed?: Date | number): () => number {
+  // Si aucune graine n'est fournie, utiliser Math.random
+  if (seed === undefined) {
+    return Math.random;
+  }
   
+  // Normaliser la graine pour qu'elle soit toujours un nombre
+  let seedValue: number;
+  
+  if (seed instanceof Date) {
+    // Pour garantir le déterminisme, normaliser la date en utilisant uniquement jour/mois/année
+    const year = seed.getFullYear();
+    const month = seed.getMonth();
+    const day = seed.getDate();
+    
+    // Créer un timestamp normalisé (identique pour toutes les dates du même jour)
+    seedValue = new Date(year, month, day, 0, 0, 0, 0).getTime();
+  } else {
+    // Si c'est déjà un nombre, l'utiliser directement
+    seedValue = seed;
+  }
+  
+  // Initialiser la graine pour notre PRNG
+  let currentSeed = seedValue;
+  
+  // Retourner une fonction de génération de nombres aléatoires déterministe
   return () => {
-        seedValue = (seedValue * 48271 + 16807) % 2147483647;
-        return (seedValue & 0x7fffffff) / 0x7fffffff;
-      };
+    // Algorithme simple de génération de nombres pseudo-aléatoires
+    // Utilise un multiplicateur, un incrément et un modulo pour créer une séquence déterministe
+    currentSeed = (currentSeed * 9301 + 49297) % 233280;
+    return currentSeed / 233280;
+  };
 }
 
 /**

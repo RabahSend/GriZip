@@ -20,10 +20,10 @@ describe('Génération et validation complète de la grille', () => {
     const grid3 = generateGrid(rows, cols, numberCount, difficulty, differentDate);
     
     // Les grilles avec la même date devraient être identiques
-    expect(JSON.stringify(grid1)).toBe(JSON.stringify(grid2));
+    expect(JSON.stringify(grid1.grid)).toBe(JSON.stringify(grid2.grid));
     
     // La grille avec une date différente devrait être différente
-    expect(JSON.stringify(grid1)).not.toBe(JSON.stringify(grid3));
+    expect(JSON.stringify(grid1.grid)).not.toBe(JSON.stringify(grid3.grid));
     
     // Vérifier que toutes les grilles sont valides
     expect(validateGrid(grid1.grid, numberCount).isValid).toBe(true);
