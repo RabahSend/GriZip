@@ -114,7 +114,7 @@ function App() {
       <header className="app-header">
         <div className="header-content">
           <h1>Grizip</h1>
-          <p>A zip game - Daily Puzzle Game</p>
+          <p>A Zip Game - Daily Puzzle Game</p>
         </div>
       </header>
       
