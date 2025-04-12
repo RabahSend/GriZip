@@ -14,9 +14,9 @@ describe('Ajustement de la difficulté', () => {
     const hardGrid = generateGrid(rows, cols, numberCount, 'HARD');
     
     // Calculer la complexité de chaque grille
-    const easyComplexity = calculateGridComplexity(easyGrid);
-    const mediumComplexity = calculateGridComplexity(mediumGrid);
-    const hardComplexity = calculateGridComplexity(hardGrid);
+    const easyComplexity = calculateGridComplexity(easyGrid.grid);
+    const mediumComplexity = calculateGridComplexity(mediumGrid.grid);
+    const hardComplexity = calculateGridComplexity(hardGrid.grid);
     
     // MODIFICATION: Vérifier que chaque grille a une complexité valide
     // au lieu d'exiger un ordre strict qui est difficile à garantir
@@ -36,9 +36,9 @@ describe('Ajustement de la difficulté', () => {
     const hardGrid = generateGrid(rows, cols, numberCount, 'HARD');
     
     // Calculer la longueur minimale du chemin pour chaque grille
-    const easyPathLength = calculateMinimumPathLength(easyGrid);
-    const mediumPathLength = calculateMinimumPathLength(mediumGrid);
-    const hardPathLength = calculateMinimumPathLength(hardGrid);
+    const easyPathLength = calculateMinimumPathLength(easyGrid.grid);
+    const mediumPathLength = calculateMinimumPathLength(mediumGrid.grid);
+    const hardPathLength = calculateMinimumPathLength(hardGrid.grid);
     
     // MODIFICATION: Vérifier que chaque grille a un chemin de longueur non nulle
     expect(easyPathLength).toBeGreaterThan(0);
