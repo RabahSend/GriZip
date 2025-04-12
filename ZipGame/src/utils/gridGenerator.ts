@@ -3,7 +3,41 @@ import { Grid, Cell, Difficulty, Coordinate, ValidationResult, Path } from '../t
 // Stockage du tracé utilisé pour chaque grille générée
 let lastGeneratedTrace: Path | null = null;
 
+// Directions définies une seule fois au niveau du module
+const DIRECTIONS = Object.freeze([
+  { row: -1, col: 0 }, // haut
+  { row: 0, col: 1 },  // droite
+  { row: 1, col: 0 },  // bas
+  { row: 0, col: -1 }  // gauche
+]);
 
+// Utiliser un tableau réutilisable pour les rotations
+const ROTATION_ANGLES = Object.freeze([90, 180, 270]);
+
+/**
+ * Vérifie si une cellule est dans les limites de la grille
+ */
+function isValidCell(row: number, col: number, maxRows: number, maxCols: number): boolean {
+  return row >= 0 && row < maxRows && col >= 0 && col < maxCols;
+}
+
+/**
+ * Compte le nombre de voisins libres d'une cellule
+ */
+function countFreeNeighbors(row: number, col: number, visited: boolean[][], maxRows: number, maxCols: number): number {
+  let count = 0;
+  
+  for (const dir of DIRECTIONS) {
+    const newRow = row + dir.row;
+    const newCol = col + dir.col;
+    
+    if (isValidCell(newRow, newCol, maxRows, maxCols) && !visited[newRow][newCol]) {
+      count++;
+    }
+  }
+  
+  return count;
+}
 
 /**
  * Crée une grille vide avec les dimensions spécifiées
@@ -508,8 +542,6 @@ function placeNumbersOnTraceGuaranteedValid(grid: Grid, trace: Path, numberCount
   }
 }
 
-
-
 /**
  * Crée un générateur de nombres aléatoires basé sur un seed
  */
@@ -523,159 +555,25 @@ function createRandomGenerator(seed?: Date): () => number {
 }
 
 /**
- * Génère un tracé vraiment aléatoire qui couvre toute la grille
- */
-export function generateRandomTrace(rows: number, cols: number, random: () => number): Path {
-  // Cas spécial: grille 1×1
-  if (rows === 1 && cols === 1) {
-    return [{ row: 0, col: 0 }];
-  }
-  
-  // Cas spécial: grilles 1×N ou N×1
-  if (rows === 1 || cols === 1) {
-    const trace: Path = [];
-    
-    if (rows === 1) {
-      // Tracé horizontal
-      for (let c = 0; c < cols; c++) {
-        trace.push({ row: 0, col: c });
-      }
-    } else {
-      // Tracé vertical
-      for (let r = 0; r < rows; r++) {
-        trace.push({ row: r, col: 0 });
-      }
-    }
-    
-    return trace;
-  }
-  
-  // Pour les autres cas, utiliser l'algorithme de backtracking
-  
-  // Créer une matrice pour suivre les cellules visitées
-  const visited: boolean[][] = Array(rows).fill(false).map(() => Array(cols).fill(false));
-  
-  // Chemin à construire
-  const trace: Path = [];
-  
-  // Choisir un point de départ aléatoire
-  const startRow = Math.floor(random() * rows);
-  const startCol = Math.floor(random() * cols);
-  
-  // Ajouter le point de départ au tracé
-  trace.push({ row: startRow, col: startCol });
-  visited[startRow][startCol] = true;
-  
-  // Directions possibles: haut, droite, bas, gauche
-  const directions = [
-    { row: -1, col: 0 },
-    { row: 0, col: 1 },
-    { row: 1, col: 0 },
-    { row: 0, col: -1 }
-  ];
-  
-  // Utiliser un algorithme de backtracking pour générer le tracé
-  function backtrack(currentRow: number, currentCol: number): boolean {
-    // Si toutes les cellules sont visitées, le tracé est complet
-    if (trace.length === rows * cols) {
-      console.log("Tracé complet" + trace.length + " " + rows * cols);
-      return true;
-    }
-    
-    // Mélanger aléatoirement les directions
-    const shuffledDirections = [...directions];
-    for (let i = shuffledDirections.length - 1; i > 0; i--) {
-      const j = Math.floor(random() * (i + 1));
-      [shuffledDirections[i], shuffledDirections[j]] = [shuffledDirections[j], shuffledDirections[i]];
-    }
-    
-    // Essayer chaque direction
-    for (const dir of shuffledDirections) {
-      const newRow = currentRow + dir.row;
-      const newCol = currentCol + dir.col;
-      
-      // Vérifier si la nouvelle position est valide
-      if (
-        newRow >= 0 && newRow < rows &&
-        newCol >= 0 && newCol < cols &&
-        !visited[newRow][newCol]
-      ) {
-        // Ajouter au tracé
-        trace.push({ row: newRow, col: newCol });
-        visited[newRow][newCol] = true;
-        
-        // Continuer récursivement depuis cette nouvelle position
-        if (backtrack(newRow, newCol)) {
-          return true;
-        }
-        
-        // Si cette direction ne mène pas à une solution complète,
-        // retirer cette position du tracé et essayer une autre direction
-        trace.pop();
-        visited[newRow][newCol] = false;
-      }
-    }
-    
-    // Aucune direction n'a conduit à une solution complète
-    return false;
-  }
-  
-  // Commencer le backtracking depuis le point de départ
-  const success = backtrack(startRow, startCol);
-  
-  // Si le backtracking a échoué, on génère un tracé alternatif
-  if (!success || trace.length !== rows * cols) {
-    // Réinitialiser le tracé
-    trace.length = 0;
-    
-    // On crée un tracé en "serpentin"
-    let goingRight = true;
-    
-    for (let r = 0; r < rows; r++) {
-      if (goingRight) {
-        for (let c = 0; c < cols; c++) {
-          trace.push({ row: r, col: c });
-        }
-      } else {
-        for (let c = cols - 1; c >= 0; c--) {
-          trace.push({ row: r, col: c });
-        }
-      }
-      goingRight = !goingRight;
-    }
-  }
-  
-  return trace;
-}
-
-
-/**
  * Génère un tracé en serpentin (alternant gauche-droite puis droite-gauche)
  * Cette fonction est maintenant utilisée comme solution de repli
  */
-function generateSerpentineTrace(rows: number, cols: number, random: () => number): Path {
-  const trace: Path = [];
+function generateSerpentineTrace(rows: number, cols: number): Path {
+  // Pré-allocation du tableau pour éviter les redimensionnements
+  const trace: Path = new Array(rows * cols);
+  let index = 0;
   
-  // Déterminer aléatoirement le point de départ (en haut à gauche ou en haut à droite)
-  const startFromLeft = random() < 0.5;
-  
-  for (let i = 0; i < rows; i++) {
-    if ((i % 2 === 0 && startFromLeft) || (i % 2 !== 0 && !startFromLeft)) {
-      // De gauche à droite
-      for (let j = 0; j < cols; j++) {
-        trace.push({ row: i, col: j });
-      }
-    } else {
-      // De droite à gauche
-      for (let j = cols - 1; j >= 0; j--) {
-        trace.push({ row: i, col: j });
-      }
+  for (let r = 0; r < rows; r++) {
+    const goingRight = (r % 2 === 0);
+    
+    for (let c = 0; c < cols; c++) {
+      const actualCol = goingRight ? c : cols - 1 - c;
+      trace[index++] = { row: r, col: actualCol };
     }
   }
   
   return trace;
 }
-
 
 /**
  * Méthode alternative qui génère un tracé en spirale plus simple
@@ -730,7 +628,7 @@ function generateEasyTrace(rows: number, cols: number, random: () => number): Pa
   
   if (random() < 0.5) {
     // 50% de chance de générer un tracé serpentin
-    originalTrace = generateSerpentineTrace(rows, cols, random);
+    originalTrace = generateSerpentineTrace(rows, cols);
   } else {
     // 50% de chance de générer un tracé en spirale
     originalTrace = generateSimpleSpiralTrace(rows, cols);
@@ -740,7 +638,6 @@ function generateEasyTrace(rows: number, cols: number, random: () => number): Pa
   const rotationAngles = [90, 180, 270];
   const selectedAngle = rotationAngles[Math.floor(random() * rotationAngles.length)];
   
-
   // Appliquer la rotation au tracé
   const rotatedTrace: Path = [];
   
@@ -769,8 +666,6 @@ function generateEasyTrace(rows: number, cols: number, random: () => number): Pa
   
   return rotatedTrace;
 }
-
-
 
 /**
  * Valide une grille complète
@@ -1104,10 +999,258 @@ function findPathBetweenCellsWithPath(grid: Grid, start: Coordinate, end: Coordi
 }
 
 /**
- * Génère un tracé semi-aléatoire avec le début et la fin fixés
- * Idéal pour le niveau de difficulté MEDIUM
+ * Fonction générique de backtracking pour générer des tracés
+ */
+function generateTraceWithBacktracking(
+  rows: number, 
+  cols: number, 
+  random: () => number,
+  startPoint?: Coordinate,
+  endPoint?: Coordinate
+): Path {
+  // Cas spéciaux (grilles 1×1 ou 1×N/N×1)
+  const specialCase = handleSpecialGridCases(rows, cols);
+  if (specialCase) return specialCase;
+  
+  // Nombre maximal de tentatives de backtracking
+  const MAX_ATTEMPTS = 10;
+  
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    // Créer matrice des cellules visitées
+    const visited: boolean[][] = Array(rows).fill(false).map(() => Array(cols).fill(false));
+    const trace: Path = [];
+    
+    // Déterminer le point de départ pour le backtracking
+    let startRow: number, startCol: number;
+    
+    if (startPoint) {
+      // Utiliser le point de départ spécifié
+      startRow = startPoint.row;
+      startCol = startPoint.col;
+    } else if (trace.length > 0) {
+      // Utiliser le dernier point de la séquence initiale
+      const lastPoint = trace[trace.length - 1];
+      startRow = lastPoint.row;
+      startCol = lastPoint.col;
+    } else {
+      // Choisir un point aléatoire
+      startRow = Math.floor(random() * rows);
+      startCol = Math.floor(random() * cols);
+    }
+    
+    trace.push({ row: startRow, col: startCol });
+    visited[startRow][startCol] = true;
+    
+    // Ajout d'un compteur pour limiter les appels récursifs
+    let backtrackingCount = 0;
+    const MAX_BACKTRACKING_CALLS = 10000;
+    
+    function backtrack(currentRow: number, currentCol: number): boolean {
+      // Vérifier si nous avons atteint la limite d'appels
+      if (backtrackingCount >= MAX_BACKTRACKING_CALLS) {
+        return false;
+      }
+      
+      // Incrémenter le compteur d'appels
+      backtrackingCount++;
+      
+      // Si on a visité toutes les cellules
+      if (trace.length === rows * cols) {
+        // Si on a un point de fin défini, vérifier si la dernière cellule correspond
+        if (endPoint) {
+          const lastCell = trace[trace.length - 1];
+          return lastCell.row === endPoint.row && lastCell.col === endPoint.col;
+        }
+        return true;
+      }
+      
+      // LOGIQUE MODIFIÉE: Si nous sommes près du nombre total de cellules et qu'un point de fin est défini,
+      // vérifier si nous pouvons atteindre le point de fin
+      if (endPoint && trace.length >= rows * cols - 3) {
+        const distToEnd = Math.abs(currentRow - endPoint.row) + Math.abs(currentCol - endPoint.col);
+        // Si nous sommes trop loin et qu'il ne reste pas assez de cellules pour atteindre le point de fin
+        if (distToEnd > rows * cols - trace.length) {
+          return false;
+        }
+      }
+      
+      // Prioriser les directions qui mènent vers des cellules avec moins de voisins libres
+      const shuffledDirections = [...DIRECTIONS];
+      shuffleArray(shuffledDirections);
+      
+      // Si on a un point de fin et qu'on s'approche de la fin du tracé, prioriser les directions vers le point de fin
+      // Augmentons le seuil pour commencer à guider vers le point de fin plus tôt
+      if (endPoint && trace.length >= rows * cols - Math.max(5, rows + cols)) {
+        shuffledDirections.sort((a, b) => {
+          const aRow = currentRow + a.row;
+          const aCol = currentCol + a.col;
+          const bRow = currentRow + b.row;
+          const bCol = currentCol + b.col;
+          
+          if (!isValidCell(aRow, aCol, rows, cols)) return 1;
+          if (!isValidCell(bRow, bCol, rows, cols)) return -1;
+          
+          const aDistToEnd = Math.abs(aRow - endPoint.row) + Math.abs(aCol - endPoint.col);
+          const bDistToEnd = Math.abs(bRow - endPoint.row) + Math.abs(bCol - endPoint.col);
+          
+          return aDistToEnd - bDistToEnd;
+        });
+      } else {
+        // Trier les directions selon l'heuristique habituelle
+        shuffledDirections.sort((a, b) => {
+          const aRow = currentRow + a.row;
+          const aCol = currentCol + a.col;
+          const bRow = currentRow + b.row;
+          const bCol = currentCol + b.col;
+          
+          if (!isValidCell(aRow, aCol, rows, cols)) return 1;
+          if (!isValidCell(bRow, bCol, rows, cols)) return -1;
+          
+          const aFreeNeighbors = countFreeNeighbors(aRow, aCol, visited, rows, cols);
+          const bFreeNeighbors = countFreeNeighbors(bRow, bCol, visited, rows, cols);
+          
+          return aFreeNeighbors - bFreeNeighbors;
+        });
+      }
+      
+      // CAS SPÉCIAL: Si c'est l'avant-dernière cellule et que endPoint est un voisin, aller directement à endPoint
+      if (endPoint && trace.length === rows * cols - 1) {
+        // Chercher si endPoint est un voisin direct
+        for (const dir of shuffledDirections) {
+          const newRow = currentRow + dir.row;
+          const newCol = currentCol + dir.col;
+          
+          if (newRow === endPoint.row && newCol === endPoint.col && !visited[newRow][newCol]) {
+            trace.push({ row: newRow, col: newCol });
+            return true; // On a trouvé un chemin complet!
+          }
+        }
+      }
+      
+      // Essayer chaque direction
+      for (const dir of shuffledDirections) {
+        const newRow = currentRow + dir.row;
+        const newCol = currentCol + dir.col;
+        
+        if (
+          newRow >= 0 && newRow < rows &&
+          newCol >= 0 && newCol < cols &&
+          !visited[newRow][newCol]
+        ) {
+          trace.push({ row: newRow, col: newCol });
+          visited[newRow][newCol] = true;
+          
+          if (backtrack(newRow, newCol)) {
+            return true;
+          }
+          
+          trace.pop();
+          visited[newRow][newCol] = false;
+        }
+      }
+      
+      return false;
+    }
+    
+    // Démarrer le backtracking
+    const success = backtrack(startRow, startCol);
+    
+    // Si le backtracking a réussi, retourner le tracé
+    if (success && trace.length === rows * cols) {
+      console.log(`Backtracking réussi à la tentative ${attempt + 1}`);
+      
+      // VÉRIFICATION FINALE: Si on a un point de fin, s'assurer que le tracé s'y termine
+      if (endPoint) {
+        const lastPoint = trace[trace.length - 1];
+        if (lastPoint.row !== endPoint.row || lastPoint.col !== endPoint.col) {
+          console.log("Le tracé ne se termine pas au point de fin spécifié, nouvelle tentative...");
+          continue;
+        }
+      }
+      
+      return trace;
+    }
+    
+    // Si on arrive ici, cette tentative a échoué, on va réessayer
+    console.log(`Tentative ${attempt + 1} échouée, réessai...`);
+  }
+  
+  // Si toutes les tentatives ont échoué avec un point de fin fixe, essayer sans point de fin
+  if (endPoint) {
+    console.log("Les tentatives avec point de fin fixe ont échoué, essai sans contrainte de fin...");
+    return generateTraceWithBacktracking(rows, cols, random, startPoint);
+  }
+  
+  // Si toutes les tentatives ont échoué, générer un tracé en serpentin
+  console.log(`Toutes les tentatives de backtracking ont échoué (${MAX_ATTEMPTS}), génération d'un tracé en serpentin`);
+  
+  // MODIFICATION: Si on avait des points fixes, essayer d'adapter le serpentin
+  if (startPoint || endPoint) {
+    // Générer un tracé en serpentin de secours
+    const serpentineTrace = generateSerpentineTrace(rows, cols);
+    
+    // Si on a un point de départ, faire une rotation pour que le serpentin commence par ce point
+    if (startPoint) {
+      // Trouver l'index du point le plus proche du point de départ demandé
+      let minDistance = Infinity;
+      let bestStartIndex = 0;
+      
+      for (let i = 0; i < serpentineTrace.length; i++) {
+        const dist = Math.abs(serpentineTrace[i].row - startPoint.row) + Math.abs(serpentineTrace[i].col - startPoint.col);
+        if (dist < minDistance) {
+          minDistance = dist;
+          bestStartIndex = i;
+        }
+      }
+      
+      // Réorganiser le tracé pour qu'il commence par ce point
+      const reorderedTrace = [
+        ...serpentineTrace.slice(bestStartIndex),
+        ...serpentineTrace.slice(0, bestStartIndex)
+      ];
+      
+      return reorderedTrace;
+    }
+    
+    return serpentineTrace;
+  }
+  
+  return generateSerpentineTrace(rows, cols);
+}
+
+/**
+ * Génère un tracé vraiment aléatoire qui couvre toute la grille
+ */
+export function generateRandomTrace(rows: number, cols: number, random: () => number): Path {
+  return generateTraceWithBacktracking(rows, cols, random);
+}
+
+/**
+ * Génère un tracé semi-aléatoire avec le début et la fin fixés à améliorer pour rendre ça moins aléatoire
  */
 function generateSemiRandomTrace(rows: number, cols: number, random: () => number): Path {
+  // Définir les points de départ
+  const startPoints: Path = [
+    { row: 0, col: 0 },
+  ];
+  
+  // Définir les points de fin (réservés)
+  const endPoints: Path = [
+    { row: rows - 1, col: cols - 2 }
+  ];
+  
+  // Sélectionner aléatoirement un point de départ et un point de fin
+  const startIndex = Math.floor(random() * startPoints.length);
+  const endIndex = Math.floor(random() * endPoints.length);
+  
+  const startPoint = startPoints[startIndex];
+  const endPoint = endPoints[endIndex];
+  
+  return generateTraceWithBacktracking(rows, cols, random, startPoint, endPoint);
+}
+
+// Extraire cette logique commune dans une fonction utilitaire
+function handleSpecialGridCases(rows: number, cols: number): Path | null {
   // Cas spécial: grille 1×1
   if (rows === 1 && cols === 1) {
     return [{ row: 0, col: 0 }];
@@ -1116,180 +1259,54 @@ function generateSemiRandomTrace(rows: number, cols: number, random: () => numbe
   // Cas spécial: grilles 1×N ou N×1
   if (rows === 1 || cols === 1) {
     const trace: Path = [];
-    
     if (rows === 1) {
-      // Tracé horizontal
       for (let c = 0; c < cols; c++) {
         trace.push({ row: 0, col: c });
       }
     } else {
-      // Tracé vertical
       for (let r = 0; r < rows; r++) {
         trace.push({ row: r, col: 0 });
       }
     }
-    
     return trace;
   }
   
-  // Pour les grilles normales
-  const visited: boolean[][] = Array(rows).fill(false).map(() => Array(cols).fill(false));
-  const trace: Path = [];
+  return null; // Pas de cas spécial
+}
+
+// Fonction de rotation optimisée qui vérifie les dimensions
+function rotateTrace(trace: Path, angle: number, rows: number, cols: number): Path {
+  // Si l'angle est 0 ou 360, retourner le trace original sans copie
+  if (angle % 360 === 0) return trace;
   
-  // Définir les 3 premières coordonnées fixes
-  const startPoints: Path = [
-    { row: 0, col: 0 },
-    { row: 0, col: 1 },
-    { row: 1, col: 1 }
-  ];
-  
-  // Définir les 3 dernières coordonnées fixes (en bas à droite)
-  const endPoints: Path = [
-    { row: rows - 2, col: cols - 1 },
-    { row: rows - 1, col: cols - 1 },
-    { row: rows - 1, col: cols - 2 }
-  ];
-  
-  // Ajouter les points de départ au tracé et les marquer comme visités
-  for (const point of startPoints) {
-    // Vérifier que le point est dans les limites de la grille
-    if (point.row < rows && point.col < cols) {
-      trace.push(point);
-      visited[point.row][point.col] = true;
-    }
-  }
-  
-  // Marquer les points de fin comme réservés
-  for (const point of endPoints) {
-    if (point.row < rows && point.col < cols) {
-      visited[point.row][point.col] = true;
-    }
-  }
-  
-  // Générer le reste du tracé aléatoirement avec backtracking
-  // Partir du dernier point de départ ajouté
-  const lastStartPoint = trace[trace.length - 1];
-  
-  const directions = [
-    { row: -1, col: 0 },
-    { row: 0, col: 1 },
-    { row: 1, col: 0 },
-    { row: 0, col: -1 }
-  ];
-  
-  function backtrack(currentRow: number, currentCol: number): boolean {
-    // Calculer combien de points il nous reste à ajouter
-    const pointsNeeded = rows * cols - endPoints.length - trace.length;
-    
-    // Si on a placé tous les points nécessaires, ajouter les points de fin
-    if (pointsNeeded <= 0) {
-      // Vérifier si le dernier point du tracé est adjacent au premier point de fin
-      const lastPoint = trace[trace.length - 1];
-      const firstEndPoint = endPoints[0];
-      
-      const isAdjacent = Math.abs(lastPoint.row - firstEndPoint.row) + 
-                         Math.abs(lastPoint.col - firstEndPoint.col) === 1;
-      
-      if (isAdjacent) {
-        // Démarquer les points de fin qui avaient été réservés
-        for (const point of endPoints) {
-          visited[point.row][point.col] = false;
-        }
-        
-        // Ajouter les points de fin au tracé
-        for (const point of endPoints) {
-          trace.push(point);
-        }
-        
-        return true;
-      }
-      return false;
-    }
-    
-    // Mélanger les directions
-    const shuffledDirections = [...directions];
-    for (let i = shuffledDirections.length - 1; i > 0; i--) {
-      const j = Math.floor(random() * (i + 1));
-      [shuffledDirections[i], shuffledDirections[j]] = [shuffledDirections[j], shuffledDirections[i]];
-    }
-    
-    // Essayer chaque direction
-    for (const dir of shuffledDirections) {
-      const newRow = currentRow + dir.row;
-      const newCol = currentCol + dir.col;
-      
-      if (
-        newRow >= 0 && newRow < rows &&
-        newCol >= 0 && newCol < cols &&
-        !visited[newRow][newCol]
-      ) {
-        trace.push({ row: newRow, col: newCol });
-        visited[newRow][newCol] = true;
-        
-        if (backtrack(newRow, newCol)) {
-          return true;
-        }
-        
-        trace.pop();
-        visited[newRow][newCol] = false;
-      }
-    }
-    
-    return false;
-  }
-  
-  // Démarrer le backtracking
-  const success = backtrack(lastStartPoint.row, lastStartPoint.col);
-  
-  // Si le backtracking échoue, générer un tracé en serpentin
-  if (!success || trace.length !== rows * cols) {
-    trace.length = 0; // Réinitialiser le tracé
-    
-    // Générer un tracé en serpentin
-    let goingRight = true;
-    
-    for (let r = 0; r < rows; r++) {
-      if (goingRight) {
-        for (let c = 0; c < cols; c++) {
-          trace.push({ row: r, col: c });
-        }
-      } else {
-        for (let c = cols - 1; c >= 0; c--) {
-          trace.push({ row: r, col: c });
-        }
-      }
-      goingRight = !goingRight;
-    }
-  }
-  
-  // Sélectionner aléatoirement un angle de rotation (90°, 180° ou 270°)
-  const rotationAngles = [90, 180, 270];
-  const selectedAngle = rotationAngles[Math.floor(random() * rotationAngles.length)];
-  
-  // Appliquer la rotation au tracé
   const rotatedTrace: Path = [];
+  // Pré-allouer la taille pour éviter les redimensionnements
+  rotatedTrace.length = trace.length;
   
-  for (const point of trace) {
+  // Pré-calcul des dimensions pour les rotations à 90° et 270°
+  const needsDimensionSwap = angle % 180 !== 0;
+  const effectiveRows = needsDimensionSwap ? cols : rows;
+  const effectiveCols = needsDimensionSwap ? rows : cols;
+  
+  for (let i = 0; i < trace.length; i++) {
+    const point = trace[i];
     let newPoint: Coordinate;
     
-    switch (selectedAngle) {
+    switch (angle % 360) {
       case 90:
-        // (row, col) → (col, rows-1-row)
-        newPoint = { row: point.col, col: rows - 1 - point.row };
+        newPoint = { row: point.col, col: effectiveRows - 1 - point.row };
         break;
       case 180:
-        // (row, col) → (rows-1-row, cols-1-col)
-        newPoint = { row: rows - 1 - point.row, col: cols - 1 - point.col };
+        newPoint = { row: effectiveRows - 1 - point.row, col: effectiveCols - 1 - point.col };
         break;
       case 270:
-        // (row, col) → (cols-1-col, row)
-        newPoint = { row: cols - 1 - point.col, col: point.row };
+        newPoint = { row: effectiveCols - 1 - point.col, col: point.row };
         break;
       default:
-        newPoint = { ...point }; // Pas de rotation (ne devrait pas arriver)
+        newPoint = { ...point };
     }
     
-    rotatedTrace.push(newPoint);
+    rotatedTrace[i] = newPoint;
   }
   
   return rotatedTrace;
