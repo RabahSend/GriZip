@@ -305,6 +305,8 @@ export const GameGrid: React.FC<GameGridProps> = ({
     setPath(path.slice(0, index + 1));
     // Recalculer les mouvements possibles
     calculatePossibleMoves();
+    // Maintenir le mode glissement actif pour permettre de continuer le tracé
+    setIsDragging(true);
   };
 
   const handleMouseDown = (row: number, col: number) => {
