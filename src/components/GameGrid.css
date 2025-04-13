@@ -747,3 +747,39 @@
   box-shadow: 0 0 0 2px rgba(42, 106, 178, 0.5);
 }
 
+/* Fix pour l'affichage de la solution sur mobile */
+@media (max-width: 768px) {
+  .game-grid {
+    max-width: 100%;
+    width: calc(100vw - 40px);  /* Adapte la taille en fonction de la largeur de l'écran */
+    max-height: calc(100vh - 200px);  /* Empêche la grille de prendre trop de hauteur */
+    overflow: hidden;  /* Évite les débordements */
+  }
+
+  /* Ajustements pour les grandes grilles */
+  .game-grid[data-size="6"], 
+  .game-grid[data-size="7"],
+  .game-grid[data-size="8"] {
+    font-size: 0.9rem;
+  }
+  
+  /* Réduit encore plus pour les très grandes grilles */
+  .game-grid[data-size="9"],
+  .game-grid[data-size="10"] {
+    font-size: 0.8rem;
+  }
+  
+  /* Réduire la taille des cellules pour les grandes grilles */
+  .grid-cell {
+    min-width: 0 !important;
+    min-height: 0 !important;
+  }
+  
+  /* Réduire la taille des numéros dans les cellules */
+  .cell-number {
+    width: 70% !important;
+    height: 70% !important;
+    font-size: 12px !important;
+  }
+}
+

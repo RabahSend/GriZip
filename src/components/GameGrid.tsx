@@ -528,6 +528,15 @@ export const GameGrid: React.FC<GameGridProps> = ({
       }
       
       setIsTimerActive(false);
+      
+      // Ajouter une classe pour indiquer que la solution est visible
+      const gridElement = document.querySelector('.game-grid');
+      if (gridElement) {
+        gridElement.classList.add('solution-visible');
+        
+        // Ajouter l'attribut data-size
+        gridElement.setAttribute('data-size', size.toString());
+      }
     } else {
       // Fallback si le tracé n'est pas disponible (ce qui ne devrait pas arriver)
       console.error("Aucun tracé disponible pour la solution");
@@ -549,6 +558,12 @@ export const GameGrid: React.FC<GameGridProps> = ({
     setPath([]);
     setShowingSolution(false);
     setCurrentNumber(1);
+    
+    // Retirer la classe quand la solution est cachée
+    const gridElement = document.querySelector('.game-grid');
+    if (gridElement) {
+      gridElement.classList.remove('solution-visible');
+    }
   };
 
   // Version améliorée pour le tactile
