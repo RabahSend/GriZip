@@ -1,0 +1,172 @@
+.terms-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.terms-header {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+  margin-bottom: 15px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.back-link:hover {
+  background-color: #f0f8ff;
+  text-decoration: none;
+}
+
+.terms-header h1 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 2.2rem;
+  font-weight: 600;
+}
+
+.terms-content {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.terms-section {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.terms-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.terms-section h2 {
+  color: #2c3e50;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #007bff;
+}
+
+.terms-section h3 {
+  color: #34495e;
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin: 20px 0 10px 0;
+}
+
+.terms-section p {
+  margin-bottom: 15px;
+  text-align: justify;
+}
+
+.terms-section ul {
+  margin: 15px 0;
+  padding-left: 25px;
+}
+
+.terms-section li {
+  margin-bottom: 8px;
+}
+
+.terms-section strong {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.terms-section a {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.terms-section a:hover {
+  text-decoration: underline;
+}
+
+.terms-footer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 2px solid #e9ecef;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 20px;
+  text-align: center;
+}
+
+.terms-footer p {
+  margin: 8px 0;
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+.terms-footer p:first-child {
+  font-weight: 500;
+  color: #495057;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .terms-container {
+    padding: 15px;
+  }
+  
+  .terms-header {
+    padding: 15px;
+  }
+  
+  .terms-header h1 {
+    font-size: 1.8rem;
+  }
+  
+  .terms-content {
+    padding: 20px;
+  }
+  
+  .terms-section h2 {
+    font-size: 1.3rem;
+  }
+  
+  .terms-section h3 {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .terms-container {
+    padding: 10px;
+  }
+  
+  .terms-header {
+    padding: 12px;
+  }
+  
+  .terms-header h1 {
+    font-size: 1.6rem;
+  }
+  
+  .terms-content {
+    padding: 15px;
+  }
+} 
